@@ -466,28 +466,24 @@ Deno.serve(async (req: Request) => {
               }
             }
 
-            lastProcessedId = competition.id;
+            // lastProcessedId will be set after all seasons are processed
           } catch (error) {
             console.error(`Error processing season ${season.id}:`, error);
           }
         }
 
+        
+        // Competition fully processed - update sync state
+        lastProcessedId = competition.id;
+        console.log(`✓ Competition "${competition.name}" fully processed. All seasons saved to DB. Saving sync state...`);
+        await saveSyncState(supabaseAdmin, lastProcessedId);
+        console.log(`✓ Sync state saved for competition ID: ${competition.id}. Moving to next competition.`);
         processedCount++;
         
-        
-        // Save sync state after EACH competition to ensure progress is saved
-        if (lastProcessedId) {
-          await saveSyncState(supabaseAdmin, lastProcessedId);
-        }
         
       } catch (error) {
         console.error(`Error processing competition ${competition.id}:`, error);
       }
-    }
-
-    // Update sync state (final save)
-    if (lastProcessedId) {
-      await saveSyncState(supabaseAdmin, lastProcessedId);
     }
 
 
