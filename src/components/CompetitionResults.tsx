@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Trophy, Save } from 'lucide-react';
 import type { Database } from '../lib/database.types';
+
 import { useCompetitions } from '../hooks/useApi';
 
 type Competition = Database['public']['Tables']['competitions']['Row'];
@@ -94,29 +95,6 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players.length]);
 
-  async function fetchAllOngoingTournaments() {
-    setTournamentsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('tournaments')
-        .select('*')
-        .eq('status', 'ongoing')
-        .order('start_date', { ascending: true });
-
-      if (error) throw error;
-      
-      setTournaments(data || []);
-      if (data && data.length > 0 && !selectedTournament) {
-        setSelectedTournament(data[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching ongoing tournaments:', error);
-      setTournaments([]);
-    } finally {
-      setTournamentsLoading(false);
-    }
-  }
-
   async function findCompetitionForTournament(tournamentId: string) {
     try {
       // Check competition_tournaments junction table
@@ -127,8 +105,8 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         .limit(1)
         .maybeSingle();
 
-      if (!ctError && ctData && ctData.competitions) {
-        const comp = ctData.competitions as Competition;
+      if (!ctError && ctData) {
+        const comp = (ctData as { competition_id: string; competitions: Competition }).competitions as Competition;
         setSelectedCompetition(comp);
         // Load points_per_round configuration
         if (comp.points_per_round && typeof comp.points_per_round === 'object') {
@@ -146,10 +124,11 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         .maybeSingle();
 
       if (!directError && directCompetition) {
-        setSelectedCompetition(directCompetition);
+        const comp = directCompetition as Competition;
+        setSelectedCompetition(comp);
         // Load points_per_round configuration
-        if (directCompetition.points_per_round && typeof directCompetition.points_per_round === 'object') {
-          setPointsPerRound(directCompetition.points_per_round as Record<string, number>);
+        if (comp.points_per_round && typeof comp.points_per_round === 'object') {
+          setPointsPerRound(comp.points_per_round as Record<string, number>);
         }
       }
     } catch (error) {
@@ -212,16 +191,18 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
     if (!selectedTournament || players.length === 0) return;
 
     try {
+      const playerIds = players.map(p => p.player_id).filter((id): id is string => id !== null);
       const { data, error } = await supabase
         .from('player_performances')
-        .select('player_id, round_reached')
-        .eq('tournament_id', selectedTournament.id);
+        .select('player_id, round_reached, fantasy_points')
+        .eq('tournament_id', selectedTournament.id)
+        .in('player_id', playerIds) as { data: Array<{ player_id: string | null; round_reached: string | null; fantasy_points: number }> | null; error: any };
 
       if (error) throw error;
 
       // Map player performances to schedules
       const performanceMap: Record<string, string> = {};
-      data?.forEach(perf => {
+      data?.forEach((perf: { player_id: string | null; round_reached: string | null; fantasy_points: number }) => {
         if (perf.round_reached) {
           // Find the schedule ID for this player
           const schedule = players.find(p => p.player_id === perf.player_id);
@@ -261,10 +242,10 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         status: isChampion ? 'champion' : isEliminated ? 'eliminated' : schedule.status,
       };
 
-      const { error: scheduleError } = await supabase
+      const { error: scheduleError } = await (supabase
         .from('player_schedules')
-        .update(scheduleUpdates)
-        .eq('id', scheduleId);
+        .update(scheduleUpdates as any)
+        .eq('id', scheduleId) as any);
 
       if (scheduleError) throw scheduleError;
 
@@ -286,11 +267,11 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         matches_lost: 0,
       };
 
-      const { error: perfError } = await supabase
+      const { error: perfError } = await (supabase
         .from('player_performances')
-        .upsert(performanceData, {
+        .upsert(performanceData as any, {
           onConflict: 'player_id,tournament_id',
-        });
+        }) as any);
 
       if (perfError) throw perfError;
 
@@ -360,10 +341,10 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
 
       // Execute bulk updates in parallel using Promise.all
       const updatePromises = scheduleUpdates.map(({ id, updates }) =>
-        supabase
+        (supabase
           .from('player_schedules')
-          .update(updates)
-          .eq('id', id)
+          .update(updates as any)
+          .eq('id', id) as any)
       );
 
       const updateResults = await Promise.all(updatePromises);
@@ -376,11 +357,11 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
 
       // Bulk upsert player_performances
       if (performanceUpdates.length > 0) {
-        const { error: perfError } = await supabase
+        const { error: perfError } = await (supabase
           .from('player_performances')
-          .upsert(performanceUpdates, {
+          .upsert(performanceUpdates as any, {
             onConflict: 'player_id,tournament_id',
-          });
+          }) as any);
 
         if (perfError) {
           console.error('Error bulk upserting performances:', perfError);

@@ -276,9 +276,8 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
                           updateEliminatedRound(schedule.id, e.target.value);
                         }
                       }}
-                      disabled={saving || schedule.status === 'withdrawn'}
+                      disabled={saving || schedule.status === ('withdrawn' as any)}
                       className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                      placeholder="Round lost"
                     >
                       <option value="">Select round...</option>
                       <option value="r128">Round of 128</option>

@@ -59,8 +59,8 @@ class BaseApiService {
 // Players API
 export class PlayersApi extends BaseApiService {
   async getAllPlayers(): Promise<ApiResponse<Player[]>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('players')
         .select('*')
         .order('live_ranking', { ascending: true, nullsFirst: false })
@@ -68,8 +68,8 @@ export class PlayersApi extends BaseApiService {
   }
 
   async getPlayerById(id: string): Promise<ApiResponse<Player>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('players')
         .select('*')
         .eq('id', id)
@@ -78,8 +78,8 @@ export class PlayersApi extends BaseApiService {
   }
 
   async updatePlayer(id: string, updates: Partial<Player>): Promise<ApiResponse<Player>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('players')
         .update(updates)
         .eq('id', id)
@@ -89,8 +89,8 @@ export class PlayersApi extends BaseApiService {
   }
 
   async createPlayer(player: Omit<Player, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Player>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('players')
         .insert(player)
         .select()
@@ -171,8 +171,8 @@ export class TournamentsApi extends BaseApiService {
   }
 
   async createTournament(tournament: Omit<Tournament, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Tournament>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('tournaments')
         .insert(tournament)
         .select()
@@ -181,8 +181,8 @@ export class TournamentsApi extends BaseApiService {
   }
 
   async updateTournament(id: string, updates: Partial<Tournament>): Promise<ApiResponse<Tournament>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('tournaments')
         .update(updates)
         .eq('id', id)
@@ -226,8 +226,8 @@ export class CompetitionsApi extends BaseApiService {
   }
 
   async createCompetition(competition: Omit<Competition, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Competition>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('competitions')
         .insert(competition)
         .select()
@@ -236,8 +236,8 @@ export class CompetitionsApi extends BaseApiService {
   }
 
   async updateCompetition(id: string, updates: Partial<Competition>): Promise<ApiResponse<Competition>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('competitions')
         .update(updates)
         .eq('id', id)
@@ -261,8 +261,8 @@ export class CompetitionsApi extends BaseApiService {
   }
 
   async associateTournament(competitionId: string, tournamentId: string): Promise<ApiResponse<CompetitionTournament>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('competition_tournaments')
         .insert({
           competition_id: competitionId,
@@ -274,8 +274,8 @@ export class CompetitionsApi extends BaseApiService {
   }
 
   async disassociateTournament(competitionId: string, tournamentId: string): Promise<ApiResponse<void>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('competition_tournaments')
         .delete()
         .eq('competition_id', competitionId)
@@ -287,8 +287,8 @@ export class CompetitionsApi extends BaseApiService {
 // User Teams API
 export class UserTeamsApi extends BaseApiService {
   async createTeam(team: Omit<UserTeam, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<UserTeam>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('user_teams')
         .insert(team)
         .select()
@@ -297,8 +297,8 @@ export class UserTeamsApi extends BaseApiService {
   }
 
   async getTeamById(id: string): Promise<ApiResponse<UserTeam>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('user_teams')
         .select('*')
         .eq('id', id)
@@ -307,8 +307,8 @@ export class UserTeamsApi extends BaseApiService {
   }
 
   async getUserTeams(userId: string): Promise<ApiResponse<UserTeam[]>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('user_teams')
         .select('*')
         .eq('user_id', userId)
@@ -316,8 +316,8 @@ export class UserTeamsApi extends BaseApiService {
   }
 
   async updateTeam(id: string, updates: Partial<UserTeam>): Promise<ApiResponse<UserTeam>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('user_teams')
         .update(updates)
         .eq('id', id)
@@ -335,8 +335,8 @@ export class TeamPlayersApi extends BaseApiService {
       player_id: playerId
     }));
 
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('team_players')
         .insert(teamPlayers)
         .select()
@@ -344,8 +344,8 @@ export class TeamPlayersApi extends BaseApiService {
   }
 
   async getTeamPlayers(teamId: string): Promise<ApiResponse<TeamPlayer[]>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('team_players')
         .select('*')
         .eq('user_team_id', teamId)
@@ -353,8 +353,8 @@ export class TeamPlayersApi extends BaseApiService {
   }
 
   async removePlayerFromTeam(teamId: string, playerId: string): Promise<ApiResponse<void>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('team_players')
         .delete()
         .eq('user_team_id', teamId)
@@ -366,8 +366,8 @@ export class TeamPlayersApi extends BaseApiService {
 // Player Schedules API
 export class PlayerSchedulesApi extends BaseApiService {
   async getPlayerSchedule(playerId: string): Promise<ApiResponse<PlayerSchedule[]>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('player_schedules')
         .select(`
           *,
@@ -384,8 +384,8 @@ export class PlayerSchedulesApi extends BaseApiService {
   }
 
   async createPlayerSchedule(schedule: Omit<PlayerSchedule, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<PlayerSchedule>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('player_schedules')
         .insert(schedule)
         .select()
@@ -394,8 +394,8 @@ export class PlayerSchedulesApi extends BaseApiService {
   }
 
   async updatePlayerSchedule(id: string, updates: Partial<PlayerSchedule>): Promise<ApiResponse<PlayerSchedule>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('player_schedules')
         .update(updates)
         .eq('id', id)
@@ -405,8 +405,8 @@ export class PlayerSchedulesApi extends BaseApiService {
   }
 
   async deletePlayerSchedule(id: string): Promise<ApiResponse<void>> {
-    return this.handleRequest(() =>
-      supabase
+    return this.handleRequest(async () =>
+      await supabase
         .from('player_schedules')
         .delete()
         .eq('id', id)

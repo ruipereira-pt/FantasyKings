@@ -144,8 +144,10 @@ export default function Competitions() {
       if (error) throw error;
 
       const teamsMap: Record<string, any> = {};
-      data?.forEach(team => {
-        teamsMap[team.competition_id] = team;
+      (data as Array<{ competition_id: string | null; [key: string]: any }> | null)?.forEach(team => {
+        if (team.competition_id) {
+          teamsMap[team.competition_id] = team;
+        }
       });
 
       setUserTeams(teamsMap);
@@ -170,15 +172,15 @@ export default function Competitions() {
       const idMap: Record<string, string> = {};
       const deadlinesMap: Record<string, string | null> = {};
 
-      for (const comp of competitions || []) {
-        const { data, error } = await supabase
+      for (const comp of (competitions as Competition[]) || []) {
+        const { data, error } = await (supabase
           .from('competition_tournaments')
           .select('tournament_id, tournaments(*)')
-          .eq('competition_id', comp.id);
+          .eq('competition_id', comp.id) as any);
 
         if (error) throw error;
 
-        const tournaments = data?.map(ct => ct.tournaments).filter(Boolean) as Tournament[] || [];
+        const tournaments = (data as Array<{ tournament_id: string; tournaments: Tournament | Tournament[] }> | null)?.map((ct: { tournaments: Tournament | Tournament[] }) => Array.isArray(ct.tournaments) ? ct.tournaments[0] : ct.tournaments).filter(Boolean) as Tournament[] || [];
         tournamentsMap[comp.id] = tournaments;
         deadlinesMap[comp.id] = comp.join_deadline;
 
@@ -236,7 +238,7 @@ export default function Competitions() {
 
       if (error) throw error;
 
-      const formatted = data?.map(item => {
+      const formatted = (data as any[])?.map((item: any) => {
         // Handle new structure: competition_tournaments -> tournaments
         let tournament = null;
         if (item.competition_tournaments && Array.isArray(item.competition_tournaments) && item.competition_tournaments.length > 0) {
