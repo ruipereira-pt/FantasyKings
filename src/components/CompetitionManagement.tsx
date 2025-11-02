@@ -6,7 +6,7 @@ import CompetitionTournamentPlayers from './CompetitionTournamentPlayers';
 import CompetitionResults from './CompetitionResults';
 import CompetitionSetup from './CompetitionSetup';
 import { useCompetitions } from '../hooks/useApi';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 
 type Competition = Database['public']['Tables']['competitions']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
@@ -56,7 +56,7 @@ export default function CompetitionManagement() {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-tournaments-schedule`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tournaments-schedule`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,

@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from './supabase';
 
 let isInitializing = false;
 let isInitialized = false;
@@ -22,10 +22,10 @@ export async function initializeData() {
     console.log('Initializing database with player and tournament data...');
 
     const playersResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rankings`,
+      `${supabaseUrl}/functions/v1/fetch-rankings`,
       {
         headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${supabaseAnonKey}`,
         },
       }
     );
@@ -35,10 +35,10 @@ export async function initializeData() {
     }
 
     const tournamentsResponse = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-tournament-schedules`,
+      `${supabaseUrl}/functions/v1/fetch-tournament-schedules`,
       {
         headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${supabaseAnonKey}`,
         },
       }
     );

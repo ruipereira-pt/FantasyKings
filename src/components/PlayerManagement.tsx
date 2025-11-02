@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { Search, Calendar, TrendingUp, Plus, Save, X, DollarSign, Edit2 } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import PlayerScheduleModal from './PlayerScheduleModal';
@@ -181,7 +181,7 @@ export default function PlayerManagement() {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rankings`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/fetch-rankings`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,

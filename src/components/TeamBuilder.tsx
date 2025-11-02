@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { X, Plus, Trash2, Trophy, Coins } from 'lucide-react';
 import type { Database } from '../lib/database.types';
@@ -546,9 +546,9 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
                     <button
                       onClick={async () => {
                         try {
-                          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-player-schedules`, {
+                          const response = await fetch(`${supabaseUrl}/functions/v1/fetch-player-schedules`, {
                             headers: {
-                              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                              Authorization: `Bearer ${supabaseAnonKey}`,
                             },
                           });
                           if (response.ok) {
