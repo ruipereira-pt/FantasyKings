@@ -106,12 +106,13 @@ export class PlayersApi extends BaseApiService {
           .maybeSingle();
 
         if (existing) {
-          const query = (supabase.from('players').update({
+          // @ts-expect-error - Supabase type inference issue
+          const query = supabase.from('players').update({
             ranking: player.ranking,
             live_ranking: player.live_ranking,
             points: player.points,
             country: player.country,
-          } as any).eq('id', (existing as any).id).select().single() as any);
+          }).eq('id', (existing as any).id).select().single();
           const { data, error } = await query;
           
           if (error) throw error;
@@ -174,7 +175,8 @@ export class TournamentsApi extends BaseApiService {
 
   async updateTournament(id: string, updates: Partial<Tournament>): Promise<ApiResponse<Tournament>> {
     return this.handleRequest(async () => {
-      const query = (supabase.from('tournaments').update(updates as any).eq('id', id).select().single() as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('tournaments').update(updates).eq('id', id).select().single();
       return await query;
     });
   }
@@ -225,7 +227,8 @@ export class CompetitionsApi extends BaseApiService {
 
   async updateCompetition(id: string, updates: Partial<Competition>): Promise<ApiResponse<Competition>> {
     return this.handleRequest(async () => {
-      const query = (supabase.from('competitions').update(updates as any).eq('id', id).select().single() as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('competitions').update(updates).eq('id', id).select().single();
       return await query;
     });
   }
@@ -301,7 +304,8 @@ export class UserTeamsApi extends BaseApiService {
 
   async updateTeam(id: string, updates: Partial<UserTeam>): Promise<ApiResponse<UserTeam>> {
     return this.handleRequest(async () => {
-      const query = (supabase.from('user_teams').update(updates as any).eq('id', id).select().single() as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('user_teams').update(updates).eq('id', id).select().single();
       return await query;
     });
   }
