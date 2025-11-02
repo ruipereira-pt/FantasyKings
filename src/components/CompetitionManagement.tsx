@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Users, RefreshCw, Award } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import TournamentAssociation from './TournamentAssociation';
 import CompetitionTournamentPlayers from './CompetitionTournamentPlayers';

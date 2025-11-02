@@ -30,6 +30,7 @@ export default function TournamentPlayersModal({ tournament, onClose }: Tourname
 
   useEffect(() => {
     fetchTournamentPlayers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournament.id]);
 
   async function fetchTournamentPlayers() {

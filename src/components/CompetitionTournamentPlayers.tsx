@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Save, Calendar } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
@@ -22,7 +22,7 @@ interface CompetitionTournamentPlayersProps {
   competitionId: string | null;
 }
 
-export default function CompetitionTournamentPlayers({ selectedTournament, competitionId }: CompetitionTournamentPlayersProps) {
+export default function CompetitionTournamentPlayers({ selectedTournament }: CompetitionTournamentPlayersProps) {
   const [players, setPlayers] = useState<PlayerSchedule[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,6 +34,7 @@ export default function CompetitionTournamentPlayers({ selectedTournament, compe
     if (selectedTournament) {
       fetchTournamentPlayers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTournament]);
 
   async function fetchTournamentPlayers() {

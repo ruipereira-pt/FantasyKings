@@ -12,7 +12,6 @@ export default function Rankings() {
   const {
     players,
     loading,
-    error,
     fetchPlayers
   } = usePlayers();
 

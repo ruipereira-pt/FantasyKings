@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, Search, Save, Trophy } from 'lucide-react';
+import { Calendar, Search } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 
 type Tournament = Database['public']['Tables']['tournaments']['Row'];

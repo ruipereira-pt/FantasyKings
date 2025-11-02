@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Trophy, Save } from 'lucide-react';
 import type { Database } from '../lib/database.types';
@@ -35,11 +35,35 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
   const [pointsPerRound, setPointsPerRound] = useState<Record<string, number>>({});
   const [tournamentsLoading, setTournamentsLoading] = useState(false);
   
-  const { competitions, loading: competitionsLoading, fetchCompetitions } = useCompetitions();
+  const { fetchCompetitions } = useCompetitions();
+  
+  const fetchAllOngoingTournaments = async () => {
+    setTournamentsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .eq('status', 'ongoing')
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+      
+      setTournaments(data || []);
+      if (data && data.length > 0 && !selectedTournament) {
+        setSelectedTournament(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching ongoing tournaments:', error);
+      setTournaments([]);
+    } finally {
+      setTournamentsLoading(false);
+    }
+  };
   
   useEffect(() => {
     fetchCompetitions();
     fetchAllOngoingTournaments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchCompetitions]);
   
   useEffect(() => {
@@ -53,7 +77,7 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
       // Find the competition associated with this tournament
       findCompetitionForTournament(selectedTournament.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedTournament]);
 
   useEffect(() => {

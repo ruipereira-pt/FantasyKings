@@ -5,7 +5,6 @@ import type { Database } from '../lib/database.types';
 
 type Competition = Database['public']['Tables']['competitions']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
-type CompetitionTournament = Database['public']['Tables']['competition_tournaments']['Row'];
 
 interface TournamentWithAssociation extends Tournament {
   isAssociated: boolean;
@@ -15,7 +14,7 @@ interface TournamentAssociationProps {
   selectedCompetition: Competition | null;
 }
 
-export default function TournamentAssociation({ selectedCompetition }: TournamentAssociationProps) {
+export default function TournamentAssociation({ selectedCompetition: _selectedCompetition }: TournamentAssociationProps) {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
   const [tournaments, setTournaments] = useState<TournamentWithAssociation[]>([]);

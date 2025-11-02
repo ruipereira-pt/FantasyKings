@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Plus, Trash2, Trophy, Coins, TrendingDown } from 'lucide-react';
+import { X, Plus, Trash2, Trophy, Coins } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 
 type Player = Database['public']['Tables']['players']['Row'];
