@@ -1,3 +1,17 @@
+/**
+ * Fetches competition and season data from SportsRadar API, creates tournaments, and updates player schedules. This is the main function for syncing tournament data from SportsRadar.
+ * 
+ * Called by:
+ *   - CompetitionManagement.tsx (admin only)
+ * 
+ * Method: POST
+ * Authentication: Required (admin only)
+ * 
+ * Environment Variables Required:
+ *   - SPORTRADAR_API_KEY (for SportsRadar API calls)
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 

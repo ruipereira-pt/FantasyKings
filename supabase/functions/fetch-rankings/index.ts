@@ -1,3 +1,19 @@
+/**
+ * Fetches ATP rankings from SportsRadar API and updates the players table
+ * 
+ * Called by:
+ *   - initializeData.ts
+ *   - api.ts (refreshRankings)
+ *   - PlayerManagement.tsx
+ * 
+ * Method: GET
+ * Authentication: Optional (anon key works)
+ * 
+ * Environment Variables Required:
+ *   - SPORTRADAR_API_KEY (for SportsRadar API calls)
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { players as fallbackPlayerData } from "./players-data.ts";
