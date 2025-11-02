@@ -21,6 +21,10 @@ const debugEnvVars = () => {
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// Debug: Log variable status BEFORE checking (always visible, even if error is caught)
+console.log('[🔍 Supabase Env Check] VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
+console.log('[🔍 Supabase Env Check] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
+
 // Check which variables are missing
 const missingVars: string[] = [];
 if (!supabaseUrl) {
@@ -117,9 +121,14 @@ ${JSON.stringify(supabaseRelatedVars, null, 2)}
   console.error('[🔴 Supabase Configuration Error]', errorMessage);
   console.error('[📊 Detailed Error Object]', errorDetails);
   
-  // Also log a simpler version that might show in error tracking
-  const simpleError = `Missing Supabase env vars: ${missingVars.join(', ')}. VITE_SUPABASE_URL exists: ${errorDetails.found.VITE_SUPABASE_URL.exists}, isSet: ${errorDetails.found.VITE_SUPABASE_URL.isSet}. VITE_SUPABASE_ANON_KEY exists: ${errorDetails.found.VITE_SUPABASE_ANON_KEY.exists}, isSet: ${errorDetails.found.VITE_SUPABASE_ANON_KEY.isSet}. All VITE_ vars: ${Object.keys(allViteVars).join(', ') || 'none'}`;
+  // Create a clear error message specifying which variables are missing
+  const missingList = missingVars.map(v => `"${v}"`).join(' and ');
+  const missingMessage = `Missing Supabase environment variable${missingVars.length > 1 ? 's' : ''}: ${missingList}.`;
   
+  // Also log a simpler version that might show in error tracking
+  const simpleError = `${missingMessage} VITE_SUPABASE_URL: ${errorDetails.found.VITE_SUPABASE_URL.exists ? 'exists' : 'missing'}, ${errorDetails.found.VITE_SUPABASE_URL.isSet ? 'set' : 'empty'}. VITE_SUPABASE_ANON_KEY: ${errorDetails.found.VITE_SUPABASE_ANON_KEY.exists ? 'exists' : 'missing'}, ${errorDetails.found.VITE_SUPABASE_ANON_KEY.isSet ? 'set' : 'empty'}.`;
+  
+  console.error('[🚨 Throwing Error]', missingMessage);
   throw new Error(simpleError);
 }
 
