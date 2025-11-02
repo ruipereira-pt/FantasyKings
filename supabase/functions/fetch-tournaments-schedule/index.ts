@@ -450,7 +450,7 @@ Deno.serve(async (req: Request) => {
         if (lastProcessedId) {
           await saveSyncState(supabaseAdmin, lastProcessedId);
         }
-        }
+        
       } catch (error) {
         console.error(`Error processing competition ${competition.id}:`, error);
       }
