@@ -79,7 +79,8 @@ export class PlayersApi extends BaseApiService {
 
   async updatePlayer(id: string, updates: Partial<Player>): Promise<ApiResponse<Player>> {
     return this.handleRequest(async () => {
-      const query = (supabase.from('players').update(updates as any).eq('id', id).select().single() as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('players').update(updates).eq('id', id).select().single();
       return await query;
     });
   }

@@ -138,7 +138,7 @@ export function useTournaments() {
   const fetchTournaments = useCallback(async () => {
     const data = await execute(() => api.tournaments.getAllTournaments());
     if (data) {
-      setTournaments(data);
+      setTournaments(data || []);
     }
     return data;
   }, [execute]);
@@ -194,7 +194,7 @@ export function usePlayerSchedules() {
   const fetchPlayerSchedule = useCallback(async (playerId: string) => {
     const data = await execute(() => api.playerSchedules.getPlayerSchedule(playerId));
     if (data) {
-      setSchedules(data);
+      setSchedules(data || []);
     }
     return data;
   }, [execute]);
