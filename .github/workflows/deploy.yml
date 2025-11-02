@@ -35,7 +35,7 @@ jobs:
     needs: [wait-for-ci]
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.url || 'https://fantasykings.bolt.host' }}
+      url: ${{ steps.deploy-vercel.outputs.url || steps.deploy-netlify.outputs.url || 'https://fantasykings.bolt.host' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
       # Vercel Deployment (if using Vercel)
       - name: Deploy to Vercel
         if: env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
-        id: deploy
+        id: deploy-vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
       # Netlify Deployment (if using Netlify)
       - name: Deploy to Netlify
         if: env.NETLIFY_SITE_ID != '' && env.NETLIFY_AUTH_TOKEN != ''
-        id: deploy
+        id: deploy-netlify
         uses: netlify/actions/cli@master
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
