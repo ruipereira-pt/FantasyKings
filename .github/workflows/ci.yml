@@ -126,9 +126,9 @@ jobs:
           fail_ci_if_error: false
         continue-on-error: true
 
-  # Supabase Edge Functions Check
+  # Supabase Edge Functions Check & Deploy
   supabase-functions:
-    name: Check Supabase Functions
+    name: Check & Deploy Supabase Functions
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -149,6 +149,29 @@ jobs:
             fi
           done
 
+      - name: Deploy Edge Functions (on main branch)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy all Edge Functions
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          # Deploy all edge functions that have index.ts
+          for dir in supabase/functions/*/; do
+            if [ -f "$dir/index.ts" ]; then
+              func_name=$(basename "$dir")
+              echo "Deploying $func_name..."
+              supabase functions deploy "$func_name" \
+                --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+                --access-token "${{ secrets.SUPABASE_ACCESS_TOKEN }}" || echo "Failed to deploy $func_name (continuing...)"
+            fi
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
   # Summary Job
   ci-success:
     name: CI Pipeline Status
@@ -165,16 +188,15 @@ jobs:
             echo "❌ Critical checks failed. Please review the logs."
             exit 1
           fi
-          
+
           # Test and Supabase checks are warnings but don't fail the pipeline
           if [ "${{ needs.test.result }}" != "success" ]; then
             echo "⚠️  Tests did not pass completely, but continuing..."
           fi
-          
+
           if [ "${{ needs.supabase-functions.result }}" != "success" ]; then
             echo "⚠️  Supabase functions check had issues, but continuing..."
           fi
-          
+
           echo "✅ All critical CI checks passed!"
           exit 0
-
