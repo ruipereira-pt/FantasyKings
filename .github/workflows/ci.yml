@@ -159,13 +159,18 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           # Deploy all edge functions that have index.ts
+          # Using --use-api flag to use Management API instead of Docker (better for CI/CD)
           for dir in supabase/functions/*/; do
             if [ -f "$dir/index.ts" ]; then
               func_name=$(basename "$dir")
+              # Skip _shared directory
+              if [ "$func_name" = "_shared" ]; then
+                continue
+              fi
               echo "Deploying $func_name..."
               supabase functions deploy "$func_name" \
                 --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
-                --access-token "${{ secrets.SUPABASE_ACCESS_TOKEN }}" || echo "Failed to deploy $func_name (continuing...)"
+                --use-api || echo "Failed to deploy $func_name (continuing...)"
             fi
           done
         env:
