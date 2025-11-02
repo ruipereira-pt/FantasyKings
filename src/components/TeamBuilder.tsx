@@ -50,14 +50,14 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
     if (!existingTeam) return;
     
     try {
-      const { data: teamPlayers, error } = await supabase
+      const { data: teamPlayers, error } = await (supabase
         .from('team_players')
         .select('player_id, players(*)')
-        .eq('user_team_id', existingTeam.id);
+        .eq('user_team_id', existingTeam.id) as any);
 
       if (error) throw error;
 
-      const playerIds = teamPlayers?.map(tp => tp.player_id) || [];
+      const playerIds = ((teamPlayers as any) || []).map((tp: any) => tp.player_id).filter(Boolean) || [];
       
       // Fetch full player data
       const { data: fullPlayers } = await supabase
@@ -104,7 +104,7 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
           console.log('Fetching players for tournament:', tournamentId);
           
           // Get players in main draw or qualifying (exclude withdrawn/eliminated)
-          const { data: eligiblePlayers, error: regError } = await supabase
+          const { data: eligiblePlayers, error: regError } = await (supabase
             .from('player_schedules')
             .select(`
               player_id,
@@ -112,23 +112,23 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
               players!inner(*)
             `)
             .eq('tournament_id', tournamentId)
-            .in('status', ['confirmed', 'qualifying']);
+            .in('status', ['confirmed', 'qualifying']) as any);
 
           if (regError) {
             console.error('Error fetching player schedules:', regError);
             throw regError;
           }
 
-          console.log('Eligible players found:', eligiblePlayers?.length || 0);
+          console.log('Eligible players found:', (eligiblePlayers as any)?.length || 0);
           
           // Log the status distribution for debugging
           const statusCounts: Record<string, number> = {};
-          eligiblePlayers?.forEach(ep => {
+          ((eligiblePlayers as any) || []).forEach((ep: any) => {
             statusCounts[ep.status] = (statusCounts[ep.status] || 0) + 1;
           });
           console.log('Status distribution:', statusCounts);
 
-          const playerIds = eligiblePlayers?.map(rp => rp.player_id).filter(Boolean) || [];
+          const playerIds = ((eligiblePlayers as any) || []).map((rp: any) => rp.player_id).filter(Boolean) || [];
           const statusMap: Record<string, string> = {};
           
           // Store player statuses for display - only confirmed and qualifying
@@ -220,9 +220,10 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
           player_id: player.id,
         }));
 
+        // @ts-expect-error - Supabase type inference issue
         const { error: playersError } = await supabase
           .from('team_players')
-          .insert(teamPlayers);
+          .insert(teamPlayers as any);
 
         if (playersError) throw playersError;
 
