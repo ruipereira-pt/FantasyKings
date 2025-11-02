@@ -4,7 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm ci",
   "framework": "vite",
-  "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
   "rewrites": [
     {
       "source": "/(.*)",

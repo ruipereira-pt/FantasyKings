@@ -62,19 +62,22 @@ This script:
 
 ## 🔧 How It Works
 
-### Current Behavior (if configured correctly):
+### Current Behavior (Default Vercel):
 
 ```
 PR Opened
     ↓
-Vercel: ❌ No deployment (if previews disabled)
-    OR
-Vercel: 🔍 Preview deployment only (if previews enabled)
+Vercel: 🔍 Preview deployment (preview environment)
 
 PR Merged to main
     ↓
 Vercel: ✅ Production deployment triggered
 ```
+
+**This is the correct and recommended behavior:**
+
+- Preview deployments allow you to test changes before merging
+- Production deployments only happen after code review and merge
 
 ### Environment Variables
 
