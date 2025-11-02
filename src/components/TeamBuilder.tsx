@@ -132,7 +132,7 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
           const statusMap: Record<string, string> = {};
           
           // Store player statuses for display - only confirmed and qualifying
-          eligiblePlayers?.forEach(ep => {
+          ((eligiblePlayers as any) || []).forEach((ep: any) => {
             if (ep.player_id && (ep.status === 'confirmed' || ep.status === 'qualifying')) {
               statusMap[ep.player_id] = ep.status;
             }

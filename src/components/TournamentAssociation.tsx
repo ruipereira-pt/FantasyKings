@@ -147,10 +147,10 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
       }
 
       // @ts-expect-error - Supabase type inference issue
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('competitions')
         .update(updates as any)
-        .eq('id', selectedComp.id);
+        .eq('id', selectedComp.id) as any);
 
       if (error) throw error;
 
