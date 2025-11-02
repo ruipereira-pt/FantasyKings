@@ -199,7 +199,8 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
     try {
       if (existingTeam) {
         // Update existing team
-        const query1 = (supabase.from('user_teams').update({ team_name: teamName } as any).eq('id', existingTeam.id) as any);
+        // @ts-expect-error - Supabase type inference issue
+        const query1 = supabase.from('user_teams').update({ team_name: teamName } as any).eq('id', existingTeam.id);
         const { error: teamError } = await query1;
 
         if (teamError) throw teamError;

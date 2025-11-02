@@ -146,8 +146,9 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
         updates.join_deadline = deadlineDate.toISOString();
       }
 
-      const query = (supabase.from('competitions').update(updates as any).eq('id', selectedComp.id) as any);
-      const { error } = await (query as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('competitions').update(updates as any).eq('id', selectedComp.id);
+      const { error } = await query;
 
       if (error) throw error;
 
