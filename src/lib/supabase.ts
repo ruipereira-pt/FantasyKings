@@ -4,7 +4,7 @@ import type { Database } from './database.types';
 // Support both VITE_ prefix (standard) and non-prefixed (legacy/Bolt.host)
 // Helper function to get environment variables with fallback
 function getEnvVar(viteName: string, legacyName: string): string {
-  // @ts-expect-error - Support for non-VITE_ prefixed vars via vite.config.ts define
+  // Access both naming conventions - vite.config.ts define ensures non-prefixed vars are available
   return import.meta.env[viteName] || import.meta.env[legacyName] || '';
 }
 
