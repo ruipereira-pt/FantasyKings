@@ -94,10 +94,9 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
         updates.eliminated_round = null;
       }
 
-      const { error } = await (supabase
-        .from('player_schedules')
-        .update(updates as any)
-        .eq('id', scheduleId) as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('player_schedules').update(updates as any).eq('id', scheduleId);
+      const { error } = await query;
 
       if (error) throw error;
 
@@ -115,13 +114,12 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
     
     setSaving(true);
     try {
-      const { error } = await (supabase
-        .from('player_schedules')
-        .update({ 
-          eliminated_round: round,
-          status: 'eliminated' as any
-        } as any)
-        .eq('id', scheduleId) as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('player_schedules').update({ 
+        eliminated_round: round,
+        status: 'eliminated' as any
+      } as any).eq('id', scheduleId);
+      const { error } = await query;
 
       if (error) throw error;
 

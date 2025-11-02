@@ -208,7 +208,8 @@ export default function PlayerManagement() {
   async function updateScheduleStatus(scheduleId: string, newStatus: string) {
     setSaving(true);
     try {
-      const query = (supabase.from('player_schedules').update({ status: newStatus as any } as any).eq('id', scheduleId) as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('player_schedules').update({ status: newStatus as any } as any).eq('id', scheduleId);
       const { error } = await query;
 
       if (error) throw error;
