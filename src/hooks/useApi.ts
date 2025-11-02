@@ -41,7 +41,9 @@ export function usePlayers() {
   const fetchPlayers = useCallback(async () => {
     const data = await execute(() => api.players.getAllPlayers());
     if (data) {
-      setPlayers(data);
+      setPlayers(data || []);
+    } else {
+      setPlayers([]);
     }
     return data;
   }, [execute]);
@@ -139,6 +141,8 @@ export function useTournaments() {
     const data = await execute(() => api.tournaments.getAllTournaments());
     if (data) {
       setTournaments(data || []);
+    } else {
+      setTournaments([]);
     }
     return data;
   }, [execute]);
@@ -195,6 +199,8 @@ export function usePlayerSchedules() {
     const data = await execute(() => api.playerSchedules.getPlayerSchedule(playerId));
     if (data) {
       setSchedules(data || []);
+    } else {
+      setSchedules([]);
     }
     return data;
   }, [execute]);
