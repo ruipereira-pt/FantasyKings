@@ -101,6 +101,7 @@ Deno.serve(async (req: Request) => {
   // Timeout protection - Edge Functions have ~60s timeout
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 50 * 1000; // 50 seconds (conservative)
+  const MAX_COMPETITIONS = 20; // Process max 20 competitions per invocation
   const BATCH_SIZE = 10; // Save sync state every N competitions
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -204,6 +205,12 @@ Deno.serve(async (req: Request) => {
         competitionsToProcess = filteredCompetitions.slice(lastIndex + 1);
         console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
       }
+    }
+    
+    // Limit to MAX_COMPETITIONS per invocation to prevent timeout (AFTER filtering by lastCompetitionId)
+    if (competitionsToProcess.length > MAX_COMPETITIONS) {
+      competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
+      console.log(`Limiting to ${MAX_COMPETITIONS} competitions per invocation to prevent timeout`);
     }
 
     let processedCount = 0;
@@ -438,10 +445,12 @@ Deno.serve(async (req: Request) => {
 
         processedCount++;
         
-        // Save sync state periodically (every BATCH_SIZE competitions)
-        if (processedCount % BATCH_SIZE === 0 && lastProcessedId) {
+        
+        // Save sync state after EACH competition to ensure progress is saved
+        if (lastProcessedId) {
           await saveSyncState(supabaseAdmin, lastProcessedId);
         }
+        
       } catch (error) {
         console.error(`Error processing competition ${competition.id}:`, error);
       }
