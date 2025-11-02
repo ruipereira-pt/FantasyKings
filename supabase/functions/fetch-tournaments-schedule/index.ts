@@ -281,8 +281,6 @@ Deno.serve(async (req: Request) => {
 
             tournamentsCreated++;
             console.log(`    ✓ Tournament created/updated: ${tournament.name} (ID: ${tournament.id})`);
-                        }
-                        playerId = newPlayer.id;
                       }
 
                       // Upsert player schedule
