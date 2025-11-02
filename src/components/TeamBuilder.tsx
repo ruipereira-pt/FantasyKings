@@ -199,10 +199,10 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
     try {
       if (existingTeam) {
         // Update existing team
-        const { error: teamError } = await supabase
+        const { error: teamError } = await (supabase
           .from('user_teams')
-          .update({ team_name: teamName })
-          .eq('id', existingTeam.id);
+          .update({ team_name: teamName } as any)
+          .eq('id', existingTeam.id) as any);
 
         if (teamError) throw teamError;
 
