@@ -11,7 +11,7 @@ type PlayerSchedule = Database['public']['Tables']['player_schedules']['Row'];
 type CompetitionTournament = Database['public']['Tables']['competition_tournaments']['Row'];
 
 // API Response wrapper
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   data: T | null;
   error: string | null;
   success: boolean;

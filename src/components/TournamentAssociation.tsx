@@ -111,13 +111,12 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
 
         if (error) throw error;
       } else {
-        // @ts-expect-error - Supabase type inference issue
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('competition_tournaments')
           .insert({
             competition_id: selectedComp.id,
             tournament_id: tournament.id
-          } as any);
+          } as any) as any);
 
         if (error) throw error;
       }
