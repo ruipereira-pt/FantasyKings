@@ -26,7 +26,12 @@ async function saveSyncState(
   supabaseAdmin: any,
   lastProcessedId: string | null
 ): Promise<void> {
-  if (!lastProcessedId) return;
+  if (!lastProcessedId) {
+    console.log('[saveSyncState] Skipping save - lastProcessedId is null');
+    return;
+  }
+  
+  console.log(`[saveSyncState] Saving sync state for competition ID: ${lastProcessedId}`);
   
   try {
     const { data: existingState } = await supabaseAdmin
@@ -36,6 +41,7 @@ async function saveSyncState(
       .maybeSingle();
 
     if (existingState) {
+      console.log(`[saveSyncState] Updating existing sync state (id: ${existingState.id})`);
       await supabaseAdmin
         .from('sportradar_sync_state')
         .update({
@@ -44,13 +50,16 @@ async function saveSyncState(
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingState.id);
+      console.log(`[saveSyncState] ✓ Successfully updated sync state to competition ID: ${lastProcessedId}`);
     } else {
+      console.log(`[saveSyncState] Creating new sync state record`);
       await supabaseAdmin
         .from('sportradar_sync_state')
         .insert({
           last_competition_id: lastProcessedId,
           last_sync_at: new Date().toISOString(),
         });
+      console.log(`[saveSyncState] ✓ Successfully created sync state with competition ID: ${lastProcessedId}`);
     }
   } catch (error) {
     console.error('Error saving sync state:', error);
@@ -101,7 +110,7 @@ Deno.serve(async (req: Request) => {
   // Timeout protection - Edge Functions have ~60s timeout
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 50 * 1000; // 50 seconds (conservative)
-  const MAX_COMPETITIONS = 20; // Process max 20 competitions per invocation
+  const MAX_COMPETITIONS = 1; // Process exactly 1 competition per invocation to avoid timeouts
   const BATCH_SIZE = 10; // Save sync state every N competitions
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -203,14 +212,14 @@ Deno.serve(async (req: Request) => {
       const lastIndex = filteredCompetitions.findIndex((c: Competition) => c.id === lastCompetitionId);
       if (lastIndex >= 0) {
         competitionsToProcess = filteredCompetitions.slice(lastIndex + 1);
-        console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
+          console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
       }
     }
     
     // Limit to MAX_COMPETITIONS per invocation to prevent timeout (AFTER filtering by lastCompetitionId)
     if (competitionsToProcess.length > MAX_COMPETITIONS) {
       competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
-      console.log(`Limiting to ${MAX_COMPETITIONS} competitions per invocation to prevent timeout`);
+      console.log(`Processing exactly 1 competition per invocation to avoid timeouts. Function will return and new instance will process next competition.`);
     }
 
     let processedCount = 0;
@@ -239,7 +248,7 @@ Deno.serve(async (req: Request) => {
           );
         }
       try {
-        console.log(`Processing competition: ${competition.name} (${competition.id})`);
+          console.log(`Processing competition: ${competition.name} (${competition.id})`);
         
         // Add rate limiting delay
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -264,7 +273,7 @@ Deno.serve(async (req: Request) => {
         await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
 
         // Debug: Log the response structure
-        console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
+          console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
         
         // The API might return seasons directly as an array, or in a 'seasons' property
         let seasonsArray: Season[] = [];
@@ -282,7 +291,7 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
+          console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
 
         // Filter seasons for years 2025 and 2026
         const targetSeasons = seasonsArray.filter((s: Season) => 
@@ -296,14 +305,34 @@ Deno.serve(async (req: Request) => {
 
         // Step 3: For each season, GET Season Info
         for (const season of targetSeasons) {
+          // Check timeout before processing each season
+          const elapsedSeason = Date.now() - startTime;
+          if (elapsedSeason > MAX_EXECUTION_TIME) {
+            console.log(`Approaching timeout during season processing, saving progress and returning...`);
+            await saveSyncState(supabaseAdmin, competition.id);
+            return new Response(
+              JSON.stringify({
+                success: true,
+                message: `Partial completion - processed ${processedCount} competitions and ${tournamentsCreated} tournaments before timeout. Run again to continue.`,
+                processed: processedCount,
+                tournaments_created: tournamentsCreated,
+                players_updated: playersUpdated,
+                last_competition_id: competition.id,
+                partial: true
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           try {
-            console.log(`  Processing season: ${season.name} (${season.id}, ${season.year})`);
+          console.log(`  Processing season: ${season.name} (${season.id}, ${season.year})`);
             
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const seasonInfoEndpoint = `/seasons/${season.id}/info.json`;
+            const locale = "en";
+            const format = "json";
+            const seasonInfoEndpoint = `/${locale}/seasons/${season.id}/info.${format}`;
             const seasonInfoResponse = await fetch(
-              `https://api.sportradar.com/tennis/trial/v3/en${seasonInfoEndpoint}?api_key=${apiKey}`
+              `https://api.sportradar.com/tennis/trial/v3${seasonInfoEndpoint}?api_key=${apiKey}`
             );
 
             if (!seasonInfoResponse.ok) {
@@ -437,28 +466,41 @@ Deno.serve(async (req: Request) => {
               }
             }
 
-            lastProcessedId = competition.id;
+            // lastProcessedId will be set after all seasons are processed
           } catch (error) {
             console.error(`Error processing season ${season.id}:`, error);
           }
         }
 
+        
+        // Competition fully processed - update sync state
+        
+        // Return after processing 1 competition - next invocation will process the next one
+        lastProcessedId = competition.id;
+        console.log(`✓ Competition "${competition.name}" fully processed. All seasons saved to DB. Saving sync state...`);
+        await saveSyncState(supabaseAdmin, lastProcessedId);
+        console.log(`✓ Sync state saved for competition ID: ${competition.id}. Moving to next competition.`);
         processedCount++;
         
+        // Return immediately after processing 1 competition - next invocation will handle the next one
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Processed 1 competition successfully. Call again to process the next competition.`,
+            processed: processedCount,
+            tournaments_created: tournamentsCreated,
+            players_updated: playersUpdated,
+            last_competition_id: lastProcessedId,
+            has_more: true,
+            partial: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
         
-        // Save sync state after EACH competition to ensure progress is saved
-        if (lastProcessedId) {
-          await saveSyncState(supabaseAdmin, lastProcessedId);
-        }
         
       } catch (error) {
         console.error(`Error processing competition ${competition.id}:`, error);
       }
-    }
-
-    // Update sync state (final save)
-    if (lastProcessedId) {
-      await saveSyncState(supabaseAdmin, lastProcessedId);
     }
 
 
