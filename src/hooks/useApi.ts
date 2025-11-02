@@ -40,11 +40,7 @@ export function usePlayers() {
 
   const fetchPlayers = useCallback(async () => {
     const data = await execute(() => api.players.getAllPlayers());
-    if (data) {
-      setPlayers(data || []);
-    } else {
-      setPlayers([]);
-    }
+    setPlayers(Array.isArray(data) ? data : []);
     return data;
   }, [execute]);
 
@@ -84,7 +80,9 @@ export function useCompetitions() {
   const fetchCompetitions = useCallback(async () => {
     const data = await execute(() => api.competitions.getAllCompetitions());
     if (data) {
-      setCompetitions(data);
+      setCompetitions(Array.isArray(data) ? data : []);
+    } else {
+      setCompetitions([]);
     }
     return data;
   }, [execute]);
@@ -139,11 +137,7 @@ export function useTournaments() {
 
   const fetchTournaments = useCallback(async () => {
     const data = await execute(() => api.tournaments.getAllTournaments());
-    if (data) {
-      setTournaments(data || []);
-    } else {
-      setTournaments([]);
-    }
+    setTournaments(Array.isArray(data) ? data : []);
     return data;
   }, [execute]);
 
@@ -197,11 +191,7 @@ export function usePlayerSchedules() {
 
   const fetchPlayerSchedule = useCallback(async (playerId: string) => {
     const data = await execute(() => api.playerSchedules.getPlayerSchedule(playerId));
-    if (data) {
-      setSchedules(data || []);
-    } else {
-      setSchedules([]);
-    }
+    setSchedules(Array.isArray(data) ? data : []);
     return data;
   }, [execute]);
 
