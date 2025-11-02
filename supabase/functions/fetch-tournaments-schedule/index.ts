@@ -26,7 +26,12 @@ async function saveSyncState(
   supabaseAdmin: any,
   lastProcessedId: string | null
 ): Promise<void> {
-  if (!lastProcessedId) return;
+  if (!lastProcessedId) {
+    console.log('[saveSyncState] Skipping save - lastProcessedId is null');
+    return;
+  }
+  
+  console.log(`[saveSyncState] Saving sync state for competition ID: ${lastProcessedId}`);
   
   try {
     const { data: existingState } = await supabaseAdmin
@@ -36,6 +41,7 @@ async function saveSyncState(
       .maybeSingle();
 
     if (existingState) {
+      console.log(`[saveSyncState] Updating existing sync state (id: ${existingState.id})`);
       await supabaseAdmin
         .from('sportradar_sync_state')
         .update({
@@ -44,13 +50,16 @@ async function saveSyncState(
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingState.id);
+      console.log(`[saveSyncState] ✓ Successfully updated sync state to competition ID: ${lastProcessedId}`);
     } else {
+      console.log(`[saveSyncState] Creating new sync state record`);
       await supabaseAdmin
         .from('sportradar_sync_state')
         .insert({
           last_competition_id: lastProcessedId,
           last_sync_at: new Date().toISOString(),
         });
+      console.log(`[saveSyncState] ✓ Successfully created sync state with competition ID: ${lastProcessedId}`);
     }
   } catch (error) {
     console.error('Error saving sync state:', error);
