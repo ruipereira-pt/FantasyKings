@@ -242,10 +242,9 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         status: isChampion ? 'champion' : isEliminated ? 'eliminated' : schedule.status,
       };
 
-      const { error: scheduleError } = await (supabase
-        .from('player_schedules')
-        .update(scheduleUpdates as any)
-        .eq('id', scheduleId) as any);
+      // @ts-expect-error - Supabase type inference issue
+      const query1 = supabase.from('player_schedules').update(scheduleUpdates as any).eq('id', scheduleId);
+      const { error: scheduleError } = await query1;
 
       if (scheduleError) throw scheduleError;
 
@@ -340,12 +339,10 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
       }
 
       // Execute bulk updates in parallel using Promise.all
-      const updatePromises = scheduleUpdates.map(({ id, updates }) =>
-        (supabase
-          .from('player_schedules')
-          .update(updates as any)
-          .eq('id', id) as any)
-      );
+      const updatePromises = scheduleUpdates.map(({ id, updates }) => {
+        // @ts-expect-error - Supabase type inference issue
+        return supabase.from('player_schedules').update(updates as any).eq('id', id);
+      });
 
       const updateResults = await Promise.all(updatePromises);
       
