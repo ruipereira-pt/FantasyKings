@@ -238,48 +238,48 @@ export default function PlayerManagement() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
         <div className="mb-4 space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
             <input
               type="text"
               placeholder="Search players..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-400">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <div className="text-xs sm:text-sm text-slate-400">
               {filteredPlayers.length} players found
             </div>
             <button
               onClick={refreshRankings}
               disabled={refreshingRankings}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="w-full sm:w-auto px-3 sm:px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm sm:text-base"
             >
               <TrendingUp className="h-4 w-4" />
-              <span>{refreshingRankings ? 'Updating...' : 'Refresh ATP Rankings'}</span>
+              <span className="truncate">{refreshingRankings ? 'Updating...' : 'Refresh Rankings'}</span>
             </button>
           </div>
         </div>
 
-        <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        <div className="space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
           {filteredPlayers.map((player) => (
             <button
               key={player.id}
               onClick={() => setSelectedPlayer(player)}
-              className={`w-full text-left p-3 rounded-lg transition-colors ${
+              className={`w-full text-left p-2 sm:p-3 rounded-lg transition-colors text-sm sm:text-base ${
                 selectedPlayer?.id === player.id
                   ? 'bg-emerald-500 text-white'
                   : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              <div className="font-semibold">{player.name}</div>
-              <div className="text-sm opacity-80">
+              <div className="font-semibold truncate">{player.name}</div>
+              <div className="text-xs sm:text-sm opacity-80 truncate">
                 Rank #{player.ranking} • {player.country}
               </div>
             </button>
@@ -287,13 +287,13 @@ export default function PlayerManagement() {
         </div>
       </div>
 
-      <div className="lg:col-span-2 space-y-6">
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <Calendar className="h-6 w-6 text-emerald-400" />
-              <h3 className="text-xl font-bold text-white">
-                Schedule Updates - {selectedPlayer?.name}
+      <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+              <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400 flex-shrink-0" />
+              <h3 className="text-lg sm:text-xl font-bold text-white truncate">
+                Schedule Updates - {selectedPlayer?.name || 'No player selected'}
               </h3>
             </div>
             <button

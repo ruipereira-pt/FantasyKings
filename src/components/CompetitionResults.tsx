@@ -406,14 +406,14 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
   const showStatusWarning = selectedCompetition && selectedCompetition.status !== 'active' && selectedCompetition.status !== 'completed';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Tournament Results Header and Selection */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-          <Trophy className="h-6 w-6 text-purple-400" />
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center space-x-2">
+          <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
           <span>Tournament Results</span>
         </h3>
-        <p className="text-slate-400 mb-4">
+        <p className="text-sm sm:text-base text-slate-400 mb-3 sm:mb-4">
           Select an ongoing tournament to update results. Mark players as eliminated and record which round they lost.
           Points will be calculated based on the competition's points per round configuration.
         </p>
@@ -464,26 +464,26 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
       {selectedTournament && selectedCompetition && (
         <>
           {/* Tournament Info */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white">{selectedTournament.name}</h3>
-                <p className="text-slate-400 mt-1">
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-white truncate">{selectedTournament.name}</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
                   {new Date(selectedTournament.start_date).toLocaleDateString()} - {new Date(selectedTournament.end_date).toLocaleDateString()}
                 </p>
-                <p className="text-slate-400">{selectedTournament.location}</p>
+                <p className="text-xs sm:text-sm text-slate-400 truncate">{selectedTournament.location}</p>
               </div>
-              <div className="text-right">
-                <div className="text-sm text-slate-400">Total Players</div>
-                <div className="text-3xl font-bold text-emerald-400">{players.length}</div>
+              <div className="text-left sm:text-right flex-shrink-0">
+                <div className="text-xs sm:text-sm text-slate-400">Total Players</div>
+                <div className="text-2xl sm:text-3xl font-bold text-emerald-400">{players.length}</div>
               </div>
             </div>
             
             {/* Points per Round Info */}
             {Object.keys(pointsPerRound).length > 0 && (
-              <div className="mt-4 p-4 bg-slate-900/50 rounded-lg">
-                <h4 className="text-sm font-semibold text-slate-300 mb-2">Points per Round:</h4>
-                <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="mt-4 p-3 sm:p-4 bg-slate-900/50 rounded-lg">
+                <h4 className="text-xs sm:text-sm font-semibold text-slate-300 mb-2">Points per Round:</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   {roundOptions.map(round => {
                     const points = pointsPerRound[round];
                     if (points === undefined) return null;
@@ -499,27 +499,27 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
           </div>
 
           {/* Search */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search players..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           {/* Players Results */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Update Results</h3>
+          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
+              <h3 className="text-base sm:text-lg font-bold text-white">Update Results</h3>
               <button
                 onClick={bulkUpdateResults}
                 disabled={saving || Object.keys(playerRounds).length === 0}
-                className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 text-sm sm:text-base"
               >
                 <Save className="h-4 w-4" />
                 <span>Save All Results</span>
@@ -535,7 +535,7 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
                 <p className="text-slate-400">No players found</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 sm:space-y-4">
                 {filteredPlayers.map((schedule) => {
                   const currentRound = playerRounds[schedule.id] || '';
                   const points = currentRound ? calculatePoints(currentRound) : 0;
@@ -546,44 +546,44 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
                   return (
                     <div
                       key={schedule.id}
-                      className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
+                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg transition-colors ${
                         isCurrentlyChampion 
                           ? 'bg-amber-500/10 border-2 border-amber-500/50' 
                           : 'bg-slate-900/50 border border-slate-700 hover:border-slate-600'
                       }`}
                     >
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${
+                      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                        <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full font-bold text-xs sm:text-sm flex-shrink-0 ${
                           isCurrentlyChampion 
                             ? 'bg-amber-500/20 text-amber-400' 
                             : 'bg-slate-700 text-slate-300'
                         }`}>
                           {schedule.players.ranking || '-'}
                         </div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-white flex items-center space-x-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-white text-sm sm:text-base flex items-center space-x-1 sm:space-x-2 truncate">
                             {isCurrentlyChampion && (
-                              <Trophy className="h-4 w-4 text-amber-400" />
+                              <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-amber-400 flex-shrink-0" />
                             )}
-                            <span>{schedule.players.name}</span>
+                            <span className="truncate">{schedule.players.name}</span>
                             {schedule.seed_number && (
-                              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">
+                              <span className="px-1.5 sm:px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold flex-shrink-0">
                                 #{schedule.seed_number}
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-slate-400">
+                          <div className="text-xs sm:text-sm text-slate-400 truncate">
                             {schedule.players.country} • {schedule.entry_type || 'Main Draw'}
                             {schedule.status === 'eliminated' && schedule.eliminated_round && (
-                              <span className="ml-2 text-red-400">(Eliminated in {schedule.eliminated_round.toUpperCase()})</span>
+                              <span className="ml-1 sm:ml-2 text-red-400">(Eliminated in {schedule.eliminated_round.toUpperCase()})</span>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <div className="text-xs text-slate-400">Round Lost / Reached</div>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-3 sm:flex-nowrap">
+                        <div className="flex-1 sm:flex-initial">
+                          <div className="text-xs text-slate-400 mb-1 hidden sm:block">Round Lost / Reached</div>
                           <select
                             value={currentRound}
                             onChange={(e) => {
@@ -591,7 +591,7 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
                               setPlayerRounds(prev => ({ ...prev, [schedule.id]: round }));
                             }}
                             disabled={saving || schedule.status === 'withdrawn'}
-                            className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 min-w-[150px]"
+                            className="w-full sm:min-w-[150px] px-2 sm:px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                           >
                             <option value="">Select round...</option>
                             {roundOptions.map(round => (
@@ -603,9 +603,9 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
                         </div>
 
                         {currentRound && (
-                          <div className="text-right">
-                            <div className="text-xs text-slate-400">Points</div>
-                            <div className={`text-lg font-bold ${
+                          <div className="flex items-center justify-between sm:flex-col sm:items-end sm:justify-start sm:text-right gap-2 sm:gap-0">
+                            <div className="text-xs text-slate-400 sm:hidden">Points:</div>
+                            <div className={`text-base sm:text-lg font-bold ${
                               isChampion ? 'text-amber-400' : points > 0 ? 'text-emerald-400' : 'text-slate-400'
                             }`}>
                               {points}
@@ -617,7 +617,7 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
                           <button
                             onClick={() => updatePlayerResult(schedule.id, currentRound)}
                             disabled={saving}
-                            className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                            className="w-full sm:w-auto flex items-center justify-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm"
                           >
                             <Save className="h-4 w-4" />
                             <span>Save</span>

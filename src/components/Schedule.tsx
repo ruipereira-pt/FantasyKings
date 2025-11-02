@@ -157,31 +157,31 @@ export default function Schedule() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-            <Calendar className="h-8 w-8 text-emerald-400" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
+            <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
             <span>Tournament Schedule</span>
           </h2>
-          <p className="text-slate-400 mt-1">ATP and Challenger tour schedules</p>
+          <p className="text-sm sm:text-base text-slate-400 mt-1">ATP and Challenger tour schedules</p>
         </div>
         <button
           onClick={refreshSchedule}
           disabled={refreshing}
-          className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
-          <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
           <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
         </button>
       </div>
 
-      <div className="flex space-x-2 overflow-x-auto pb-2">
+      <div className="flex flex-wrap gap-2 w-full">
         {(['all', 'upcoming', 'ongoing', 'completed'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all text-sm sm:text-base flex-shrink-0 ${
               filter === status
                 ? 'bg-emerald-500 text-white'
                 : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
@@ -201,51 +201,65 @@ export default function Schedule() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {filteredTournaments.map((tournament) => (
             <div
               key={tournament.id}
               onClick={() => setSelectedTournament(tournament)}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer"
+              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6 hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-white mb-2">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="text-base sm:text-lg font-bold text-white mb-1 sm:mb-2 truncate">
                     {tournament.name}
                   </h3>
-                  <div className="flex items-center space-x-2 text-sm text-slate-300 mb-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{tournament.location || 'TBD'}</span>
+                  <div className="flex items-center space-x-2 text-xs sm:text-sm text-slate-300">
+                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">{tournament.location || 'TBD'}</span>
                   </div>
                 </div>
-                <Trophy className={`h-6 w-6 ${
+                <Trophy className={`h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 ${
                   tournament.category === 'grand_slam' ? 'text-rose-400' :
                   tournament.category === 'atp_1000' ? 'text-amber-400' :
                   'text-emerald-400'
                 }`} />
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-400">Surface:</span>
                   <span className="text-white flex items-center space-x-1">
                     <span>{surfaceIcons[tournament.surface || 'hard']}</span>
-                    <span>{tournament.surface?.toUpperCase() || 'HARD'}</span>
+                    <span className="hidden sm:inline">{tournament.surface?.toUpperCase() || 'HARD'}</span>
+                    <span className="sm:hidden">{tournament.surface?.charAt(0).toUpperCase() || 'H'}</span>
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
                   <span className="text-slate-400">Dates:</span>
-                  <span className="text-white">
-                    {new Date(tournament.start_date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                    {' - '}
-                    {new Date(tournament.end_date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                  <span className="text-white text-right">
+                    <span className="hidden sm:inline">
+                      {new Date(tournament.start_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                      {' - '}
+                      {new Date(tournament.end_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <span className="sm:hidden">
+                      {new Date(tournament.start_date).toLocaleDateString('en-US', {
+                        month: 'numeric',
+                        day: 'numeric',
+                      })}
+                      {' - '}
+                      {new Date(tournament.end_date).toLocaleDateString('en-US', {
+                        month: 'numeric',
+                        day: 'numeric',
+                      })}
+                    </span>
                   </span>
                 </div>
 

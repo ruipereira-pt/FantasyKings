@@ -130,13 +130,13 @@ export default function CompetitionSetup({ onCompetitionChange }: CompetitionSet
   }
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-        <Trophy className="h-6 w-6 text-emerald-400" />
+    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+      <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4 flex items-center space-x-2">
+        <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400" />
         <span>Competition Setup</span>
       </h3>
 
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">
             Select Competition

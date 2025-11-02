@@ -40,20 +40,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full relative">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-slate-800 border-0 sm:border border-slate-700 rounded-none sm:rounded-xl p-4 sm:p-6 max-w-md w-full h-full sm:h-auto relative flex flex-col">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
+          aria-label="Close"
         >
           <X className="h-6 w-6" />
         </button>
 
-        <h2 className="text-2xl font-bold text-white mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6 pr-8">
           {isSignUp ? 'Create Account' : 'Sign In'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 sm:flex-none">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Email

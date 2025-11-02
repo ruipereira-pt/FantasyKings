@@ -28,13 +28,13 @@ export default function Rankings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-          <TrendingUp className="h-8 w-8 text-emerald-400" />
+        <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
+          <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
           <span>Live Rankings</span>
         </h2>
-        <p className="text-slate-400 mt-1">Real-time player rankings</p>
+        <p className="text-sm sm:text-base text-slate-400 mt-1">Real-time player rankings</p>
       </div>
 
       {players.length === 0 ? (
@@ -46,78 +46,124 @@ export default function Rankings() {
           </p>
         </div>
       ) : (
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-900/50 border-b border-slate-700">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Rank
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Player
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Country
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Points
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Price
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/50">
-                {players.map((player, index) => (
-                  <tr
-                    key={player.id}
-                    className="hover:bg-slate-700/30 transition-colors cursor-pointer"
-                    onClick={() => setSelectedPlayer(player)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {index < 3 ? (
-                          <Award className={`h-5 w-5 mr-2 ${
-                            index === 0 ? 'text-yellow-400' :
-                            index === 1 ? 'text-slate-300' :
-                            'text-amber-600'
-                          }`} />
-                        ) : null}
-                        <span className="text-lg font-semibold text-white">
-                          {player.live_ranking || player.ranking || '-'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base font-medium text-white">
-                        {player.name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-slate-300">
-                        {player.country || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-base font-semibold text-emerald-400">
-                        {player.points?.toLocaleString() || '0'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end space-x-1">
-                        <Coins className="h-4 w-4 text-amber-400" />
-                        <span className="text-base font-semibold text-amber-400">
-                          {player.price || 0}
-                        </span>
-                      </div>
-                    </td>
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full min-w-0">
+                <thead>
+                  <tr className="bg-slate-900/50 border-b border-slate-700">
+                    <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Rank
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Player
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Country
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 lg:py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Points
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 lg:py-4 text-right text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Price
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {players.map((player, index) => (
+                    <tr
+                      key={player.id}
+                      className="hover:bg-slate-700/30 transition-colors cursor-pointer"
+                      onClick={() => setSelectedPlayer(player)}
+                    >
+                      <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {index < 3 ? (
+                            <Award className={`h-5 w-5 mr-2 ${
+                              index === 0 ? 'text-yellow-400' :
+                              index === 1 ? 'text-slate-300' :
+                              'text-amber-600'
+                            }`} />
+                          ) : null}
+                          <span className="text-base lg:text-lg font-semibold text-white">
+                            {player.live_ranking || player.ranking || '-'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                        <div className="text-sm lg:text-base font-medium text-white">
+                          {player.name}
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                        <span className="text-xs lg:text-sm text-slate-300">
+                          {player.country || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-right">
+                        <span className="text-sm lg:text-base font-semibold text-emerald-400">
+                          {player.points?.toLocaleString() || '0'}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-right">
+                        <div className="flex items-center justify-end space-x-1">
+                          <Coins className="h-4 w-4 text-amber-400" />
+                          <span className="text-sm lg:text-base font-semibold text-amber-400">
+                            {player.price || 0}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {players.map((player, index) => (
+              <div
+                key={player.id}
+                onClick={() => setSelectedPlayer(player)}
+                className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 cursor-pointer hover:bg-slate-700/30 transition-colors"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    {index < 3 ? (
+                      <Award className={`h-5 w-5 ${
+                        index === 0 ? 'text-yellow-400' :
+                        index === 1 ? 'text-slate-300' :
+                        'text-amber-600'
+                      }`} />
+                    ) : null}
+                    <span className="text-lg font-bold text-white">
+                      #{player.live_ranking || player.ranking || '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Coins className="h-4 w-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-amber-400">
+                      {player.price || 0}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-base font-semibold text-white mb-1">
+                  {player.name}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">
+                    {player.country || 'No country'}
+                  </span>
+                  <span className="text-sm font-semibold text-emerald-400">
+                    {player.points?.toLocaleString() || '0'} pts
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {selectedPlayer && (

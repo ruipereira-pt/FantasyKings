@@ -217,13 +217,13 @@ export default function Leaderboard() {
 
   if (openCompetitions.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-            <Trophy className="h-8 w-8 text-emerald-400" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
+            <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
             <span>Leaderboard</span>
           </h2>
-          <p className="text-slate-400 mt-1">Top managers in active competitions</p>
+          <p className="text-sm sm:text-base text-slate-400 mt-1">Top managers in active competitions</p>
         </div>
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-12 text-center">
           <Users className="h-16 w-16 text-slate-600 mx-auto mb-4" />
@@ -238,60 +238,61 @@ export default function Leaderboard() {
   if (selectedComp) {
     const { competition, teams } = selectedComp;
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-              <Trophy className="h-8 w-8 text-emerald-400" />
+      <div className="space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
+              <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
               <span>Full Leaderboard</span>
             </h2>
-            <p className="text-slate-400 mt-1">{getTournamentName(competition)}</p>
+            <p className="text-sm sm:text-base text-slate-400 mt-1 truncate">{getTournamentName(competition)}</p>
           </div>
           <button
             onClick={() => setSelectedCompetition(null)}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            className="px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm sm:text-base whitespace-nowrap"
           >
             Back to Overview
           </button>
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-slate-700">
-            <h3 className="text-xl font-bold text-white mb-2">
+          <div className="p-4 sm:p-6 border-b border-slate-700">
+            <h3 className="text-lg sm:text-xl font-bold text-white mb-2 truncate">
               {getTournamentName(competition)}
             </h3>
-            <div className="flex items-center space-x-4 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-slate-400">
               <span>{new Date(competition.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(competition.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span>{competition.max_players} players</span>
-              <span>•</span>
-              <span>{teams.length} teams registered</span>
+              <span className="hidden sm:inline">•</span>
+              <span>{teams.length} teams</span>
             </div>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto max-w-full">
+            <table className="w-full min-w-0">
               <thead>
                 <tr className="bg-slate-900/50 border-b border-slate-700">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     #
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Team Name
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Manager
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Players
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Total Points
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Registered
                   </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -304,7 +305,7 @@ export default function Leaderboard() {
                       user?.email === team.user_email ? 'bg-emerald-500/5' : ''
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {index < 3 && (
                           <Award
@@ -317,32 +318,32 @@ export default function Leaderboard() {
                             }`}
                           />
                         )}
-                        <span className="text-lg font-semibold text-white">{index + 1}</span>
+                        <span className="text-base lg:text-lg font-semibold text-white">{index + 1}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base font-medium text-white">{team.team_name}</div>
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                      <div className="text-sm lg:text-base font-medium text-white truncate max-w-xs">{team.team_name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-slate-300">{team.user_email}</span>
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
+                      <span className="text-xs lg:text-sm text-slate-300 truncate max-w-xs block">{team.user_email}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="text-sm text-slate-300">{team.player_count}/{competition.max_players}</span>
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-center">
+                      <span className="text-xs lg:text-sm text-slate-300">{team.player_count}/{competition.max_players}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className="text-lg font-bold text-emerald-400">{team.total_points}</span>
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-center">
+                      <span className="text-base lg:text-lg font-bold text-emerald-400">{team.total_points}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                       <span className="text-xs text-slate-400">
                         {new Date(team.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleViewTeam(team, competition)}
-                        className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm flex items-center space-x-1"
+                        className="px-2 sm:px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-xs sm:text-sm flex items-center space-x-1"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                         <span>View</span>
                       </button>
                     </td>
@@ -350,6 +351,53 @@ export default function Leaderboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-slate-700/50">
+            {teams.map((team, index) => (
+              <div
+                key={team.id}
+                className={`p-4 hover:bg-slate-700/30 transition-colors ${
+                  user?.email === team.user_email ? 'bg-emerald-500/5' : ''
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    {index < 3 && (
+                      <Award
+                        className={`h-5 w-5 ${
+                          index === 0
+                            ? 'text-yellow-400'
+                            : index === 1
+                            ? 'text-slate-300'
+                            : 'text-amber-600'
+                        }`}
+                      />
+                    )}
+                    <span className="text-xl font-bold text-white">#{index + 1}</span>
+                  </div>
+                  <span className="text-lg font-bold text-emerald-400">{team.total_points} pts</span>
+                </div>
+                <div className="font-semibold text-white mb-1">{team.team_name}</div>
+                <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                  <span className="truncate mr-2">{team.user_email}</span>
+                  <span>{team.player_count}/{competition.max_players} players</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500">
+                    {new Date(team.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => handleViewTeam(team, competition)}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-xs flex items-center space-x-1"
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span>View</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

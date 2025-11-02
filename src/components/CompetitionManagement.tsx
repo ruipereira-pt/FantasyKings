@@ -88,23 +88,23 @@ export default function CompetitionManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Fetch Tournaments Schedule Section */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <RefreshCw className="h-6 w-6 text-emerald-400" />
-          <h3 className="text-xl font-bold text-white">Fetch Tournaments Schedule from SportsRadar</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+        <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+          <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-400 flex-shrink-0" />
+          <h3 className="text-lg sm:text-xl font-bold text-white">Fetch Tournaments Schedule from SportsRadar</h3>
         </div>
-        <p className="text-slate-400 mb-4">
+        <p className="text-sm sm:text-base text-slate-400 mb-3 sm:mb-4">
           Fetch competitions, seasons (2025/2026), and season info from SportsRadar API. 
           This will create/update tournaments and update player schedules from qualification and main draw stages.
         </p>
         <button
           onClick={fetchTournamentsSchedule}
           disabled={fetchingTournamentsSchedule}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 sm:py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 text-sm sm:text-base"
         >
-          <RefreshCw className={`h-5 w-5 ${fetchingTournamentsSchedule ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${fetchingTournamentsSchedule ? 'animate-spin' : ''}`} />
           <span>{fetchingTournamentsSchedule ? 'Fetching...' : 'Fetch Tournaments Schedule'}</span>
         </button>
       </div>

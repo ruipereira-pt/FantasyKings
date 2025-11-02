@@ -332,17 +332,17 @@ export default function Competitions() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-          <Trophy className="h-8 w-8 text-emerald-400" />
+        <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
+          <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-400" />
           <span>Competitions</span>
         </h2>
-        <p className="text-slate-400 mt-1">Join upcoming tournaments and compete</p>
+        <p className="text-sm sm:text-base text-slate-400 mt-1">Join upcoming tournaments and compete</p>
       </div>
 
       <div>
-        <h3 className="text-2xl font-bold text-white mb-4">Tournament Competitions</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Tournament Competitions</h3>
         {loading ? (
           <div className="text-center py-12">
             <div className="text-slate-400">Loading competitions...</div>

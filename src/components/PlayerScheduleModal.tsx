@@ -88,24 +88,25 @@ export default function PlayerScheduleModal({ player, onClose }: PlayerScheduleM
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-        <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{player.name}</h2>
-            <p className="text-slate-400 text-sm mt-1">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-slate-800 border-0 sm:border border-slate-700 rounded-none sm:rounded-xl max-w-2xl w-full h-full sm:h-auto sm:max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="bg-slate-900/50 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700 flex items-center justify-between">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-white truncate">{player.name}</h2>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1 truncate">
               Rank #{player.live_ranking || player.ranking} • {player.country}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            className="flex-shrink-0 p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            aria-label="Close"
           >
-            <X className="h-6 w-6 text-slate-400" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6 text-slate-400" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           <div className="flex items-center space-x-2 mb-4">
             <Calendar className="h-5 w-5 text-emerald-400" />
             <h3 className="text-lg font-semibold text-white">Tournament Schedule</h3>
@@ -121,37 +122,37 @@ export default function PlayerScheduleModal({ player, onClose }: PlayerScheduleM
               <p className="text-slate-400">No tournament schedule available</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {schedules.map((schedule, index) => (
                 <div
                   key={index}
-                  className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:bg-slate-700/30 transition-colors"
+                  className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 sm:p-4 hover:bg-slate-700/30 transition-colors"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-2">
                         {getStatusIcon(schedule.status)}
-                        <h4 className="text-white font-semibold">
+                        <h4 className="text-white font-semibold text-sm sm:text-base truncate">
                           {schedule.tournament.name}
                         </h4>
                       </div>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-xs sm:text-sm">
                         <p className="text-slate-400">
                           {formatDate(schedule.tournament.start_date)} - {formatDate(schedule.tournament.end_date)}
                         </p>
-                        <p className="text-slate-400">
+                        <p className="text-slate-400 truncate">
                           {schedule.tournament.location}
                         </p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className={`font-medium capitalize ${getStatusColor(schedule.status)}`}>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2">
+                          <span className={`font-medium capitalize text-xs sm:text-sm ${getStatusColor(schedule.status)}`}>
                             {schedule.status}
                           </span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400">
+                          <span className="text-slate-500 hidden sm:inline">•</span>
+                          <span className="text-slate-400 text-xs sm:text-sm">
                             {schedule.tournament.surface}
                           </span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400 capitalize">
+                          <span className="text-slate-500 hidden sm:inline">•</span>
+                          <span className="text-slate-400 capitalize text-xs sm:text-sm">
                             {schedule.tournament.category}
                           </span>
                         </div>
