@@ -21,11 +21,12 @@ const debugEnvVars = () => {
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Debug: Log variable status BEFORE checking (dev mode only, or when error occurs)
-if (import.meta.env.DEV) {
-  console.log('[🔍 Supabase Env Check] VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
-  console.log('[🔍 Supabase Env Check] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
-}
+// Debug: Log variable status BEFORE checking (ENABLED IN PRODUCTION for debugging)
+// Always visible to help diagnose environment variable issues in production
+console.log('[🔍 Supabase Env Check] VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
+console.log('[🔍 Supabase Env Check] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
+console.log('[🔍 Supabase Env Check] import.meta.env keys:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')).join(', ') || 'none');
+console.log('[🔍 Supabase Env Check] All env keys with SUPABASE:', Object.keys(import.meta.env).filter(k => k.includes('SUPABASE')).join(', ') || 'none');
 
 // Check which variables are missing
 const missingVars: string[] = [];
@@ -134,14 +135,13 @@ ${JSON.stringify(supabaseRelatedVars, null, 2)}
   throw new Error(simpleError);
 }
 
-// Success - log in development mode
-if (import.meta.env.DEV) {
-  console.log('[✅ Supabase Config]', {
-    url: `${supabaseUrl.substring(0, 30)}...`,
-    key: `${supabaseAnonKey.substring(0, 30)}...`,
-    urlLength: supabaseUrl.length,
-    keyLength: supabaseAnonKey.length,
-  });
-}
+// Success - log in both development and production for debugging
+console.log('[✅ Supabase Config]', {
+  url: `${supabaseUrl.substring(0, 30)}...`,
+  key: `${supabaseAnonKey.substring(0, 30)}...`,
+  urlLength: supabaseUrl.length,
+  keyLength: supabaseAnonKey.length,
+  mode: import.meta.env.DEV ? 'development' : 'production',
+});
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
