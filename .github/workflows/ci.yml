@@ -142,12 +142,24 @@ jobs:
       - name: Check Supabase Functions syntax
         run: |
           cd supabase/functions
+          errors=0
           for dir in */; do
             if [ -f "$dir/index.ts" ]; then
               echo "Checking $dir..."
-              deno check "$dir/index.ts" || true
+              if ! deno check "$dir/index.ts" 2>&1; then
+                echo "❌ Syntax error in $dir"
+                errors=$((errors + 1))
+              else
+                echo "✅ $dir syntax OK"
+              fi
             fi
           done
+
+          if [ $errors -gt 0 ]; then
+            echo "❌ Found $errors function(s) with syntax errors"
+            exit 1
+          fi
+          echo "✅ All functions passed syntax check"
 
       - name: Deploy Edge Functions (on main branch)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -155,11 +167,42 @@ jobs:
         with:
           version: latest
 
+      - name: Validate Edge Functions Syntax
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          # Validate syntax of all edge functions before deploying
+          echo "Validating edge function syntax..."
+          errors=0
+          for dir in supabase/functions/*/; do
+            if [ -f "$dir/index.ts" ]; then
+              func_name=$(basename "$dir")
+              # Skip _shared directory
+              if [ "$func_name" = "_shared" ]; then
+                continue
+              fi
+              echo "Checking syntax for $func_name..."
+              # Use Deno to check syntax
+              if ! deno check "$dir/index.ts" 2>&1; then
+                echo "❌ Syntax error in $func_name"
+                errors=$((errors + 1))
+              else
+                echo "✅ $func_name syntax OK"
+              fi
+            fi
+          done
+
+          if [ $errors -gt 0 ]; then
+            echo "❌ Found $errors function(s) with syntax errors. Deployment will fail."
+            exit 1
+          fi
+          echo "✅ All functions passed syntax validation"
+
       - name: Deploy all Edge Functions
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           # Deploy all edge functions that have index.ts
           # Using --use-api flag to use Management API instead of Docker (better for CI/CD)
+          errors=0
           for dir in supabase/functions/*/; do
             if [ -f "$dir/index.ts" ]; then
               func_name=$(basename "$dir")
@@ -168,11 +211,22 @@ jobs:
                 continue
               fi
               echo "Deploying $func_name..."
-              supabase functions deploy "$func_name" \
+              if ! supabase functions deploy "$func_name" \
                 --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
-                --use-api || echo "Failed to deploy $func_name (continuing...)"
+                --use-api; then
+                echo "❌ Failed to deploy $func_name"
+                errors=$((errors + 1))
+              else
+                echo "✅ Successfully deployed $func_name"
+              fi
             fi
           done
+
+          if [ $errors -gt 0 ]; then
+            echo "❌ Failed to deploy $errors function(s). Pipeline will fail."
+            exit 1
+          fi
+          echo "✅ All functions deployed successfully"
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
