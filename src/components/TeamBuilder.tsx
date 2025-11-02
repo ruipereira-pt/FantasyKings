@@ -288,7 +288,7 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <h3 className="text-lg font-bold text-white mb-1">{teamName}</h3>
                 <p className="text-sm text-slate-400">{competition.name}</p>
-                {readOnly && playerPoints.length > 0 && (
+                {playerPoints.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-700">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-slate-400">Total Tournament Points</span>
