@@ -144,4 +144,16 @@ console.log('[✅ Supabase Config]', {
   mode: import.meta.env.DEV ? 'development' : 'production',
 });
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  // Configure real-time to handle WebSocket token properly
+  // The __WS_TOKEN__ is defined in vite.config.ts to prevent build errors
+  realtime: {
+    timeout: 20000,
+  },
+  // Ensure auth persists correctly
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
