@@ -21,6 +21,43 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// Helper function to save sync state
+async function saveSyncState(
+  supabaseAdmin: any,
+  lastProcessedId: string | null
+): Promise<void> {
+  if (!lastProcessedId) return;
+  
+  try {
+    const { data: existingState } = await supabaseAdmin
+      .from('sportradar_sync_state')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingState) {
+      await supabaseAdmin
+        .from('sportradar_sync_state')
+        .update({
+          last_competition_id: lastProcessedId,
+          last_sync_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingState.id);
+    } else {
+      await supabaseAdmin
+        .from('sportradar_sync_state')
+        .insert({
+          last_competition_id: lastProcessedId,
+          last_sync_at: new Date().toISOString(),
+        });
+    }
+  } catch (error) {
+    console.error('Error saving sync state:', error);
+  }
+}
+
+
 interface Competition {
   id: string;
   name: string;
@@ -61,6 +98,10 @@ interface SeasonInfo {
 }
 
 Deno.serve(async (req: Request) => {
+  // Timeout protection - Edge Functions have ~60s timeout
+  const startTime = Date.now();
+  const MAX_EXECUTION_TIME = 50 * 1000; // 50 seconds (conservative)
+  const BATCH_SIZE = 10; // Save sync state every N competitions
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -172,6 +213,24 @@ Deno.serve(async (req: Request) => {
 
     // Step 2: For each competition, GET Competition Seasons (year=2025, 2026)
     for (const competition of competitionsToProcess) {
+        // Check if we're approaching timeout
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_EXECUTION_TIME) {
+          console.log(`Approaching timeout, saving progress and returning...`);
+          await saveSyncState(supabaseAdmin, lastProcessedId);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: `Partial completion - processed ${processedCount} competitions before timeout. Run again to continue.`,
+              processed: processedCount,
+              tournaments_created: tournamentsCreated,
+              players_updated: playersUpdated,
+              last_competition_id: lastProcessedId,
+              partial: true
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       try {
         console.log(`Processing competition: ${competition.name} (${competition.id})`);
         
@@ -378,68 +437,17 @@ Deno.serve(async (req: Request) => {
         }
 
         processedCount++;
+        
+        // Save sync state periodically (every BATCH_SIZE competitions)
+        if (processedCount % BATCH_SIZE === 0 && lastProcessedId) {
+          await saveSyncState(supabaseAdmin, lastProcessedId);
+        }
       } catch (error) {
         console.error(`Error processing competition ${competition.id}:`, error);
       }
     }
 
-    // Update sync state
+    // Update sync state (final save)
     if (lastProcessedId) {
-      const { data: existingState } = await supabaseAdmin
-        .from('sportradar_sync_state')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
-
-      if (existingState) {
-        await supabaseAdmin
-          .from('sportradar_sync_state')
-          .update({
-            last_competition_id: lastProcessedId,
-            last_sync_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingState.id);
-      } else {
-        await supabaseAdmin
-          .from('sportradar_sync_state')
-          .insert({
-            last_competition_id: lastProcessedId,
-            last_sync_at: new Date().toISOString(),
-          });
-      }
+      await saveSyncState(supabaseAdmin, lastProcessedId);
     }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        processed: processedCount,
-        tournaments_created: tournamentsCreated,
-        players_updated: playersUpdated,
-        last_competition_id: lastProcessedId,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: any) {
-    console.error('Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-});
-
-function mapCategoryFromCompetition(competition: Competition): string {
-  const level = competition.level?.toLowerCase() || '';
-  const categoryName = competition.category?.name?.toLowerCase() || '';
-  
-  if (categoryName.includes('grand slam') || level.includes('grand_slam')) return 'grand_slam';
-  if (categoryName.includes('atp 1000') || level.includes('atp_1000')) return 'atp_1000';
-  if (categoryName.includes('atp 500') || level.includes('atp_500')) return 'atp_500';
-  if (categoryName.includes('atp 250') || level.includes('atp_250')) return 'atp_250';
-  if (categoryName.includes('challenger') || level.includes('challenger')) return 'challenger';
-  if (categoryName.includes('finals') || level.includes('finals')) return 'finals';
-  
-  return 'atp_250'; // Default
-}
-
