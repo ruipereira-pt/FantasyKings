@@ -199,7 +199,7 @@ Deno.serve(async (req: Request) => {
 
     // Filter to only process competitions after the last one (if exists)
     let competitionsToProcess = filteredCompetitions;
-    
+    let competitionsToProcess = filteredCompetitions;
     // Limit to MAX_COMPETITIONS per invocation to prevent timeout
     if (competitionsToProcess.length > MAX_COMPETITIONS) {
       competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
