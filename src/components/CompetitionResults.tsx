@@ -321,7 +321,7 @@ export default function CompetitionResults({ selectedCompetition: propSelectedCo
         let points = 0;
         if (isChampion) {
           points = pointsPerRound['w'] || 0;
-        } else if (round) {
+        } else {
           points = pointsPerRound[round] || 0;
         }
 
