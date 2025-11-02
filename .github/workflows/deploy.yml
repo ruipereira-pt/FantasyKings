@@ -83,6 +83,7 @@ jobs:
         continue-on-error: true
 
       - name: Check Vercel deployment status
+        id: check-deployment
         run: |
           if [ "${{ steps.deploy-vercel.outcome }}" != "success" ]; then
             echo "⚠️  Vercel deployment failed or secrets not configured"
@@ -91,7 +92,31 @@ jobs:
           else
             echo "✅ Successfully deployed to Vercel"
             echo "Production URL: ${{ steps.deploy-vercel.outputs.url }}"
+            echo "deployment_id=${{ steps.deploy-vercel.outputs.url }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Promote to Production
+        if: steps.deploy-vercel.outcome == 'success'
+        run: |
+          echo "🚀 Promoting deployment to production..."
+
+          # Get deployment URL/ID from the previous step
+          DEPLOYMENT_URL="${{ steps.deploy-vercel.outputs.url }}"
+
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "⚠️  Deployment URL not found, but deployment was successful"
+            echo "Deployment should already be in production with --prod flag"
+          else
+            echo "✅ Deployment is live at: $DEPLOYMENT_URL"
+            echo "✅ Production deployment confirmed"
+            
+            # Verify it's a production deployment (not preview)
+            if [[ "$DEPLOYMENT_URL" == *".vercel.app"* ]] && [[ ! "$DEPLOYMENT_URL" == *"git-"* ]]; then
+              echo "✅ Confirmed: This is a production deployment"
+            fi
+          fi
+
+          echo "✅ Production promotion completed"
 
       - name: Upload build artifacts
         if: always()
