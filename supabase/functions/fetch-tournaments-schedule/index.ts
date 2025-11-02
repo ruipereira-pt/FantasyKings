@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
   // Timeout protection - Edge Functions have ~60s timeout
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 50 * 1000; // 50 seconds (conservative)
-  const MAX_COMPETITIONS = 20; // Process max 20 competitions per invocation
+  const MAX_COMPETITIONS = 1; // Process exactly 1 competition per invocation to avoid timeouts
   const BATCH_SIZE = 10; // Save sync state every N competitions
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -219,7 +219,7 @@ Deno.serve(async (req: Request) => {
     // Limit to MAX_COMPETITIONS per invocation to prevent timeout (AFTER filtering by lastCompetitionId)
     if (competitionsToProcess.length > MAX_COMPETITIONS) {
       competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
-      console.log(`Limiting to ${MAX_COMPETITIONS} competitions per invocation to prevent timeout`);
+      console.log(`Processing exactly 1 competition per invocation to avoid timeouts. Function will return and new instance will process next competition.`);
     }
 
     let processedCount = 0;
@@ -474,11 +474,28 @@ Deno.serve(async (req: Request) => {
 
         
         // Competition fully processed - update sync state
+        
+        // Return after processing 1 competition - next invocation will process the next one
         lastProcessedId = competition.id;
         console.log(`✓ Competition "${competition.name}" fully processed. All seasons saved to DB. Saving sync state...`);
         await saveSyncState(supabaseAdmin, lastProcessedId);
         console.log(`✓ Sync state saved for competition ID: ${competition.id}. Moving to next competition.`);
         processedCount++;
+        
+        // Return immediately after processing 1 competition - next invocation will handle the next one
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: `Processed 1 competition successfully. Call again to process the next competition.`,
+            processed: processedCount,
+            tournaments_created: tournamentsCreated,
+            players_updated: playersUpdated,
+            last_competition_id: lastProcessedId,
+            has_more: true,
+            partial: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
         
         
       } catch (error) {
