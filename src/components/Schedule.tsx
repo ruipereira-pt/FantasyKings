@@ -87,16 +87,16 @@ export default function Schedule() {
       // Update competition statuses based on deadline before fetching
       await supabase.rpc('update_competition_status_on_deadline');
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('competitions')
         .select('id, name, status, type, max_players, max_changes, budget, start_date, end_date, tournament_id')
         .eq('type', 'per_competition')
-        .not('tournament_id', 'is', null);
+        .not('tournament_id', 'is', null) as any);
 
       if (error) throw error;
 
       const map: Record<string, CompetitionInfo> = {};
-      data?.forEach((comp) => {
+      (data as any)?.forEach((comp: any) => {
         if (comp.tournament_id) {
           map[comp.tournament_id] = {
             id: comp.id,

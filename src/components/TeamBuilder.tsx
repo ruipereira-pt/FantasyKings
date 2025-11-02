@@ -229,16 +229,15 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
         alert('Team updated successfully!');
       } else {
         // Create new team
-        // @ts-expect-error - Supabase type inference issue
-        const { data: team, error: teamError } = await supabase
+        const { data: team, error: teamError } = await (supabase
           .from('user_teams')
           .insert({
             user_id: user.id,
             competition_id: competition.id,
             team_name: teamName,
-          })
+          } as any)
           .select()
-          .single();
+          .single() as any);
 
         if (teamError) throw teamError;
 
@@ -247,10 +246,9 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
           player_id: player.id,
         }));
 
-        // @ts-expect-error - Supabase type inference issue
-        const { error: playersError } = await supabase
+        const { error: playersError } = await (supabase
           .from('team_players')
-          .insert(teamPlayers);
+          .insert(teamPlayers as any) as any);
 
         if (playersError) throw playersError;
 

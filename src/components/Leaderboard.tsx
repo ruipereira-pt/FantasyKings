@@ -69,7 +69,7 @@ export default function Leaderboard() {
           .eq('competition_id', (comp as any).id) as any);
 
         if (ctError) {
-          console.error('Error fetching competition tournaments:', comp.id, ctError);
+          console.error('Error fetching competition tournaments:', (comp as any).id, ctError);
           continue;
         }
 
@@ -79,26 +79,26 @@ export default function Leaderboard() {
           ...((comp as any).tournament_id ? [(comp as any).tournament_id] : [])
         ].filter(Boolean);
 
-        const { data: teams, error: teamsError } = await supabase
+        const { data: teams, error: teamsError } = await (supabase
           .from('user_teams')
           .select('*')
-          .eq('competition_id', comp.id)
-          .order('created_at', { ascending: true });
+          .eq('competition_id', (comp as any).id)
+          .order('created_at', { ascending: true }) as any);
 
         if (teamsError) {
-          console.error('Error fetching teams for competition:', comp.id, teamsError);
+          console.error('Error fetching teams for competition:', (comp as any).id, teamsError);
           continue;
         }
 
         // Get player counts and calculate points for each team
         const teamsWithDetails: TeamWithDetails[] = await Promise.all(
-          (teams || []).map(async (team: any) => {
+          ((teams as any) || []).map(async (team: any) => {
             // Get player count
-            const { count } = await supabase
+            const { count } = await (supabase
               .from('team_players')
               .select('*', { count: 'exact', head: true })
               .eq('user_team_id', team.id)
-              .is('removed_at', null);
+              .is('removed_at', null) as any);
 
             // Get all players in this team
             const { data: teamPlayers, error: tpError } = await (supabase

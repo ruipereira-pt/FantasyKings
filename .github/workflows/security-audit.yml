@@ -13,6 +13,10 @@ jobs:
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,4 +79,3 @@ jobs:
             } catch (error) {
               console.log('Could not parse security report:', error);
             }
-
