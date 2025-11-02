@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Import cache utility
-    let saveToCache: (endpoint: string, data: any) => Promise<void>;
+    let saveToCache: (endpoint: string, data: any, supabase?: any) => Promise<void>;
     try {
       const cacheModule = await import('../_shared/sportradar-cache.ts');
       saveToCache = cacheModule.saveToCache;
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
     const competitionsData = await competitionsResponse.json();
     
     // Save raw response
-    await saveToCache(competitionsEndpoint, competitionsData);
+    await saveToCache(competitionsEndpoint, competitionsData, supabaseAdmin);
     console.log(`Found ${competitionsData.competitions?.length || 0} competitions`);
 
     if (!competitionsData.competitions || !Array.isArray(competitionsData.competitions)) {
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
         }
 
         const seasonsData = await seasonsResponse.json();
-        await saveToCache(seasonsEndpoint, seasonsData);
+        await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
 
         if (!seasonsData.seasons || !Array.isArray(seasonsData.seasons)) {
           console.log(`No seasons found for ${competition.name}`);
@@ -220,7 +220,7 @@ Deno.serve(async (req: Request) => {
             }
 
             const seasonInfo: SeasonInfo = await seasonInfoResponse.json();
-            await saveToCache(seasonInfoEndpoint, seasonInfo);
+            await saveToCache(seasonInfoEndpoint, seasonInfo, supabaseAdmin);
 
             // Extract venue from complex
             const venue = seasonInfo.complex 
