@@ -281,6 +281,57 @@ Deno.serve(async (req: Request) => {
 
             tournamentsCreated++;
             console.log(`    ✓ Tournament created/updated: ${tournament.name} (ID: ${tournament.id})`);
+
+
+            // Step 4: Update player schedules from stages (qualification and main draw)
+            if (seasonInfo.stages && Array.isArray(seasonInfo.stages)) {
+              for (const stage of seasonInfo.stages) {
+                const stageType = stage.type?.toLowerCase() || '';
+                const isQualification = stageType.includes('qualification') || stageType.includes('qualifying');
+                const isMainDraw = stageType.includes('main') || stageType.includes('singles');
+                
+                if (!isQualification && !isMainDraw) continue;
+
+                const status = isQualification ? 'qualifying' : 'confirmed';
+                
+                if (stage.competitors && Array.isArray(stage.competitors)) {
+                  for (const competitorEntry of stage.competitors) {
+                    const competitor = competitorEntry.competitor;
+                    if (!competitor || !competitor.id || !competitor.name) continue;
+
+                    try {
+                      // Find or create player
+                      const { data: existingPlayer } = await supabaseAdmin
+                        .from('players')
+                        .select('id')
+                        .eq('sportradar_competitor_id', competitor.id)
+                        .maybeSingle();
+
+                      let playerId: string;
+                      
+                      if (existingPlayer) {
+                        playerId = existingPlayer.id;
+                      } else {
+                        // Create player if doesn't exist
+                        const { data: newPlayer, error: playerError } = await supabaseAdmin
+                          .from('players')
+                          .insert({
+                            name: competitor.name,
+                            country: competitor.country_code || null,
+                            sportradar_competitor_id: competitor.id,
+                            ranking: null,
+                            live_ranking: null,
+                            points: 0,
+                            price: 2, // Default price
+                          })
+                          .select()
+                          .single();
+
+                        if (playerError) {
+                          console.error(`Error creating player ${competitor.name}:`, playerError);
+                          continue;
+                        }
+                        playerId = newPlayer.id;
                       }
 
                       // Upsert player schedule
