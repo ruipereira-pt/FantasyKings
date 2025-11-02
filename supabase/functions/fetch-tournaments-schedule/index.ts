@@ -472,7 +472,7 @@ Deno.serve(async (req: Request) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Unknown error occurred' }),
