@@ -21,9 +21,11 @@ const debugEnvVars = () => {
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-// Debug: Log variable status BEFORE checking (always visible, even if error is caught)
-console.log('[🔍 Supabase Env Check] VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
-console.log('[🔍 Supabase Env Check] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
+// Debug: Log variable status BEFORE checking (dev mode only, or when error occurs)
+if (import.meta.env.DEV) {
+  console.log('[🔍 Supabase Env Check] VITE_SUPABASE_URL:', supabaseUrl ? `SET (length: ${supabaseUrl.length})` : 'NOT SET');
+  console.log('[🔍 Supabase Env Check] VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? `SET (length: ${supabaseAnonKey.length})` : 'NOT SET');
+}
 
 // Check which variables are missing
 const missingVars: string[] = [];
