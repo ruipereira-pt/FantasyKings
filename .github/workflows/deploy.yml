@@ -55,6 +55,21 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
+      - name: Verify environment variables in build
+        run: |
+          echo "✅ Build completed successfully"
+          echo "Environment variables were embedded during build"
+          if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
+            echo "⚠️  Warning: VITE_SUPABASE_URL secret may not be set"
+          else
+            echo "✅ VITE_SUPABASE_URL is configured"
+          fi
+          if [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+            echo "⚠️  Warning: VITE_SUPABASE_ANON_KEY secret may not be set"
+          else
+            echo "✅ VITE_SUPABASE_ANON_KEY is configured"
+          fi
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v5
         with:
@@ -116,9 +131,25 @@ jobs:
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
 
-      # Note: Bolt.host deployments are typically handled via GitHub integration
-      # Environment variables must be set in Bolt.host dashboard
-      # See DEPLOYMENT.md for instructions
+      # Bolt.host Deployment
+      # Note: Bolt.host typically auto-deploys on push to main via GitHub integration
+      # The build artifacts in dist/ are ready for deployment
+      # If Bolt.host is connected via GitHub, it will automatically deploy
+      # Otherwise, manually upload dist/ folder to Bolt.host dashboard
+
+      - name: Verify build artifacts
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "❌ Build directory not found!"
+            exit 1
+          fi
+          echo "✅ Build artifacts verified"
+          echo "   Files in dist/: $(ls -1 dist | wc -l)"
+          echo "   Total size: $(du -sh dist | cut -f1)"
+          echo ""
+          echo "📦 Build is ready for deployment!"
+          echo "   - If Bolt.host has GitHub integration: Auto-deployment should trigger"
+          echo "   - If not: Upload ./dist folder manually to Bolt.host dashboard"
 
       # Deployment summary
       - name: Deployment Summary

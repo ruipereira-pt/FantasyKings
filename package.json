@@ -7,6 +7,8 @@
     "enable-leaked-password-protection": "node scripts/enable-leaked-password-protection.js",
     "dev": "vite",
     "build": "vite build",
+    "build:with-env": "bash scripts/build-with-env.sh",
+    "deploy:local": "bash scripts/deploy-local.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
