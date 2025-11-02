@@ -67,16 +67,54 @@ After adding the environment variables:
 
 ### Still seeing the error?
 
-1. **Check variable names**: Must be exactly `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
-2. **Check values**: Ensure no extra spaces or quotes
-3. **Verify deployment**: Make sure the latest deployment includes the variables
-4. **Check Bolt.host logs**: Look for build errors in deployment logs
+1. **Check variable names**: Must be exactly one of:
+   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (recommended)
+   - OR `SUPABASE_URL` and `SUPABASE_ANON_KEY` (also supported)
 
-### How to check if variables are set:
+2. **Check values**:
+   - Ensure no extra spaces or quotes
+   - URL should start with `https://`
+   - Anon key should be a long string
 
-- View build logs in Bolt.host dashboard
-- Variables should appear in the build output (values may be masked)
-- Check that the build step shows environment variables are loaded
+3. **Verify deployment**:
+   - Make sure the latest deployment includes the variables
+   - **Important**: Variables must be available during BUILD, not just runtime
+   - Bolt.host needs to expose these to the build process
+
+4. **Check Bolt.host logs**:
+   - Look for build errors in deployment logs
+   - Check if variables are being loaded during `npm run build`
+
+### How to verify variables are set in Bolt.host:
+
+1. Go to Bolt.host dashboard → Your project → Environment Variables
+2. Verify both variables are listed (names and values are present)
+3. **Critical**: Make sure the variables are marked for "Build" or "Both" (not just "Runtime")
+4. If Bolt.host has a separate "Build Environment Variables" section, add them there too
+
+### If variables still don't work:
+
+1. **Try using VITE\_ prefix explicitly**:
+   - Set `VITE_SUPABASE_URL` (instead of `SUPABASE_URL`)
+   - Set `VITE_SUPABASE_ANON_KEY` (instead of `SUPABASE_ANON_KEY`)
+   - Vite requires `VITE_` prefix by default, but our config supports both
+
+2. **Check build logs for errors**:
+   - Look for messages about environment variables
+   - Verify the build completes successfully
+
+3. **Contact Bolt.host support**:
+   - Ask how to ensure environment variables are available during build
+   - Verify their build process exposes `process.env` variables to Vite
+
+### Debug steps:
+
+Open browser console on your production site and look for:
+
+- `[Supabase Error]` messages showing which variables are available
+- Any console errors mentioning Supabase
+
+The error will list all available Supabase-related environment variables to help diagnose the issue.
 
 ## 🔐 Security
 
