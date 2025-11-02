@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Content Security Policy: Secure by default, allows necessary sources -->
+    <!-- Note: In development, Vite may use eval for HMR - add 'unsafe-eval' only for dev -->
+    <!-- In production builds, Vite doesn't use eval, so 'unsafe-eval' is not needed -->
+    <!-- If you see CSP errors in production, check if any dependency requires 'unsafe-eval' -->
+    <meta 
+      http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; 
+               script-src 'self' 'unsafe-inline'; 
+               style-src 'self' 'unsafe-inline'; 
+               img-src 'self' data: https: blob:; 
+               font-src 'self' data:; 
+               connect-src 'self' https: wss:; 
+               frame-src 'self' https:; 
+               object-src 'none'; 
+               base-uri 'self'; 
+               form-action 'self';"
+    />
     <title>FantasyKings.com - Build Your Dream Tennis Team</title>
   </head>
   <body>

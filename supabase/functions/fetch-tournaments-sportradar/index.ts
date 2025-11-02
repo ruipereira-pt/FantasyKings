@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createSportradarService } from "../fetch-rankings/sportradar-service.ts";
+// Import from _shared using dynamic import
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,7 +54,15 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Starting tournament update from Sportradar by admin: ${user.email}...`);
 
-    const sportradarService = createSportradarService();
+        // Dynamic import from _shared to avoid cross-function import issues
+    let sportradarService;
+    try {
+      const serviceModule = await import('../_shared/sportradar-service.ts');
+      sportradarService = serviceModule.createSportradarService();
+    } catch (error) {
+      console.error('Failed to import sportradar service:', error);
+      sportradarService = null;
+    }
     if (!sportradarService) {
       return new Response(
         JSON.stringify({ error: 'Sportradar API key not configured' }),
