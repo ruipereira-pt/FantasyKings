@@ -1,0 +1,31 @@
+/*
+  # Add Sportradar Competitor ID Support
+  
+  This migration adds support for Sportradar competitor IDs to ensure
+  reliable player matching and prevent duplicates during ranking updates.
+*/
+
+-- Add sportradar_competitor_id column to players table
+ALTER TABLE players 
+ADD COLUMN IF NOT EXISTS sportradar_competitor_id text;
+
+-- Add unique constraint on sportradar_competitor_id
+ALTER TABLE players 
+ADD CONSTRAINT players_sportradar_id_unique UNIQUE (sportradar_competitor_id);
+
+-- Add index for faster lookups by sportradar_competitor_id
+CREATE INDEX IF NOT EXISTS idx_players_sportradar_id ON players(sportradar_competitor_id);
+
+-- Add comment explaining the new field
+COMMENT ON COLUMN players.sportradar_competitor_id IS 
+'Sportradar competitor ID for reliable player matching and preventing duplicates';
+
+-- Update the existing unique constraint to be conditional
+-- (allow NULL values for sportradar_competitor_id but enforce uniqueness when present)
+ALTER TABLE players 
+DROP CONSTRAINT IF EXISTS players_name_unique;
+
+-- Create a partial unique index on name only when sportradar_competitor_id is NULL
+CREATE UNIQUE INDEX IF NOT EXISTS idx_players_name_unique 
+ON players(name) 
+WHERE sportradar_competitor_id IS NULL;

@@ -1,0 +1,73 @@
+/*
+  # Create update_player_rankings Function
+  
+  This function provides a safe way to update player rankings in bulk
+  while preserving all existing relationships and preventing duplicates.
+*/
+
+CREATE OR REPLACE FUNCTION update_player_rankings(players_data jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  player_record jsonb;
+  player_name text;
+  player_country text;
+  player_ranking integer;
+  player_points integer;
+  player_price integer;
+  player_competitor_id text;
+BEGIN
+  -- Loop through each player in the input data
+  FOR player_record IN SELECT * FROM jsonb_array_elements(players_data)
+  LOOP
+    -- Extract player data
+    player_name := player_record->>'name';
+    player_country := player_record->>'country';
+    player_ranking := (player_record->>'ranking')::integer;
+    player_points := (player_record->>'points')::integer;
+    player_price := (player_record->>'price')::integer;
+    player_competitor_id := player_record->>'sportradar_competitor_id';
+    
+    -- Skip players without competitor ID
+    IF player_competitor_id IS NULL OR player_competitor_id = '' THEN
+      CONTINUE;
+    END IF;
+    
+    -- Upsert the player using sportradar_competitor_id
+    INSERT INTO players (
+      name, 
+      country, 
+      live_ranking, 
+      ranking, 
+      points, 
+      price,
+      sportradar_competitor_id,
+      updated_at
+    ) VALUES (
+      player_name,
+      player_country,
+      player_ranking,
+      player_ranking,
+      player_points,
+      player_price,
+      player_competitor_id,
+      now()
+    )
+    ON CONFLICT (sportradar_competitor_id) 
+    DO UPDATE SET
+      name = EXCLUDED.name,
+      country = EXCLUDED.country,
+      live_ranking = EXCLUDED.live_ranking,
+      ranking = EXCLUDED.ranking,
+      points = EXCLUDED.points,
+      price = EXCLUDED.price,
+      updated_at = EXCLUDED.updated_at;
+      
+  END LOOP;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION update_player_rankings(jsonb) TO authenticated;

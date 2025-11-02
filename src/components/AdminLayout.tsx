@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Shield, Trophy, Users, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -53,7 +52,7 @@ export default function AdminLayout({ children, activeTab, onTabChange }: AdminL
             }`}
           >
             <Trophy className="h-5 w-5" />
-            <span className="font-semibold">Competitions</span>
+            <span className="font-semibold">Competitions Management</span>
           </button>
           <button
             onClick={() => onTabChange('players')}
@@ -64,7 +63,7 @@ export default function AdminLayout({ children, activeTab, onTabChange }: AdminL
             }`}
           >
             <Users className="h-5 w-5" />
-            <span className="font-semibold">Players</span>
+            <span className="font-semibold">Players Management</span>
           </button>
         </div>
 

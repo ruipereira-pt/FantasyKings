@@ -1,0 +1,4 @@
+# These files are Deno Edge Functions, not TypeScript/Node.js
+# They will show linting errors in VSCode/IDE but are valid for Deno runtime
+# The Deno runtime validates these when deployed
+

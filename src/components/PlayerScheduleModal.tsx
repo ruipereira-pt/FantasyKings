@@ -26,20 +26,20 @@ export default function PlayerScheduleModal({ player, onClose }: PlayerScheduleM
 
   async function fetchPlayerSchedule() {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('player_schedules')
         .select(`
           status,
           tournament:tournaments (*)
         `)
         .eq('player_id', player.id)
-        .order('tournament(start_date)', { ascending: true });
+        .order('tournament(start_date)', { ascending: true }) as any);
 
       if (error) throw error;
 
-      const formattedSchedules = (data || [])
-        .filter(item => item.tournament)
-        .map(item => ({
+      const formattedSchedules = ((data as any) || [])
+        .filter((item: any) => item.tournament)
+        .map((item: any) => ({
           tournament: item.tournament as Tournament,
           status: item.status,
         }));
@@ -152,7 +152,7 @@ export default function PlayerScheduleModal({ player, onClose }: PlayerScheduleM
                           </span>
                           <span className="text-slate-500">•</span>
                           <span className="text-slate-400 capitalize">
-                            {schedule.tournament.level}
+                            {schedule.tournament.category}
                           </span>
                         </div>
                       </div>

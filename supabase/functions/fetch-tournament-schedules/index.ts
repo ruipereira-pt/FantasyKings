@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     const tournaments = tournaments2025.map(t => ({
       ...t,
       surface: t.surface as "hard" | "clay" | "grass",
-      category: t.category as "grand_slam" | "masters_1000" | "500" | "250" | "finals" | "challenger" | "other",
+      category: t.category === "atp_250" ? "atp_250" : t.category as "grand_slam" | "atp_1000" | "atp_500" | "atp_250" | "finals" | "challenger",
       status: t.status as "upcoming" | "ongoing" | "completed"
     }));
 

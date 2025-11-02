@@ -5,7 +5,6 @@ import type { Database } from '../lib/database.types';
 
 type Competition = Database['public']['Tables']['competitions']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
-type CompetitionTournament = Database['public']['Tables']['competition_tournaments']['Row'];
 
 interface TournamentWithAssociation extends Tournament {
   isAssociated: boolean;
@@ -15,7 +14,7 @@ interface TournamentAssociationProps {
   selectedCompetition: Competition | null;
 }
 
-export default function TournamentAssociation({ selectedCompetition }: TournamentAssociationProps) {
+export default function TournamentAssociation({ selectedCompetition: _selectedCompetition }: TournamentAssociationProps) {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
   const [tournaments, setTournaments] = useState<TournamentWithAssociation[]>([]);
@@ -51,7 +50,6 @@ export default function TournamentAssociation({ selectedCompetition }: Tournamen
       const { data, error } = await supabase
         .from('competitions')
         .select('*')
-        .in('type', ['season', 'road_to_major', 'per_gameweek'])
         .order('name');
 
       if (error) throw error;
@@ -83,10 +81,10 @@ export default function TournamentAssociation({ selectedCompetition }: Tournamen
       if (associationsRes.error) throw associationsRes.error;
 
       const associatedTournamentIds = new Set(
-        associationsRes.data?.map(a => a.tournament_id) || []
+        (associationsRes.data as any)?.map((a: any) => a.tournament_id) || []
       );
 
-      const tournamentsWithAssociation = (tournamentsRes.data || []).map(t => ({
+      const tournamentsWithAssociation = ((tournamentsRes.data as any) || []).map((t: any) => ({
         ...t,
         isAssociated: associatedTournamentIds.has(t.id)
       }));
@@ -113,12 +111,12 @@ export default function TournamentAssociation({ selectedCompetition }: Tournamen
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await (supabase
           .from('competition_tournaments')
           .insert({
             competition_id: selectedComp.id,
             tournament_id: tournament.id
-          });
+          } as any) as any);
 
         if (error) throw error;
       }
@@ -148,10 +146,9 @@ export default function TournamentAssociation({ selectedCompetition }: Tournamen
         updates.join_deadline = deadlineDate.toISOString();
       }
 
-      const { error } = await supabase
-        .from('competitions')
-        .update(updates)
-        .eq('id', selectedComp.id);
+      // @ts-expect-error - Supabase type inference issue
+      const query = supabase.from('competitions').update(updates as any).eq('id', selectedComp.id);
+      const { error } = await query;
 
       if (error) throw error;
 

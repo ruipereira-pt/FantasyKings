@@ -1,0 +1,22 @@
+/*
+  # Add UPDATE policy for competitions table
+
+  1. Changes
+    - Add UPDATE policy for competitions table to allow authenticated users to update competitions
+    - This is needed for admin functionality to update competition dates and settings
+
+  2. Notes
+    - Only authenticated users can update competitions
+    - This allows the admin interface to modify competition settings
+*/
+
+-- Add UPDATE policy for competitions (admin only)
+CREATE POLICY "Admin users can update competitions"
+  ON competitions FOR UPDATE
+  TO authenticated
+  USING (
+    auth.jwt() ->> 'email' IN ('rui@fk.com', 'admin@fk.com')
+  )
+  WITH CHECK (
+    auth.jwt() ->> 'email' IN ('rui@fk.com', 'admin@fk.com')
+  );

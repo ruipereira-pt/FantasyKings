@@ -96,21 +96,30 @@ export interface Database {
           id: string
           player_id: string | null
           tournament_id: string | null
-          status: 'registered' | 'withdrawn' | 'eliminated' | 'champion'
+          status: 'registered' | 'withdrawn' | 'eliminated' | 'champion' | 'confirmed' | 'qualifying' | 'alternate'
+          entry_type: string | null
+          seed_number: number | null
+          eliminated_round: string | null
           created_at: string
         }
         Insert: {
           id?: string
           player_id?: string | null
           tournament_id?: string | null
-          status?: 'registered' | 'withdrawn' | 'eliminated' | 'champion'
+          status?: 'registered' | 'withdrawn' | 'eliminated' | 'champion' | 'confirmed' | 'qualifying' | 'alternate'
+          entry_type?: string | null
+          seed_number?: number | null
+          eliminated_round?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           player_id?: string | null
           tournament_id?: string | null
-          status?: 'registered' | 'withdrawn' | 'eliminated' | 'champion'
+          status?: 'registered' | 'withdrawn' | 'eliminated' | 'champion' | 'confirmed' | 'qualifying' | 'alternate'
+          entry_type?: string | null
+          seed_number?: number | null
+          eliminated_round?: string | null
           created_at?: string
         }
       }
@@ -149,6 +158,9 @@ export interface Database {
           major_target: 'ao' | 'rg' | 'wimbledon' | 'uso' | 'finals' | null
           gameweek_number: number | null
           join_deadline: string | null
+          number_of_players: number | null
+          first_round: string | null
+          points_per_round: Json | null
           created_at: string
           updated_at: string
         }
@@ -166,6 +178,9 @@ export interface Database {
           major_target?: 'ao' | 'rg' | 'wimbledon' | 'uso' | 'finals' | null
           gameweek_number?: number | null
           join_deadline?: string | null
+          number_of_players?: number | null
+          first_round?: string | null
+          points_per_round?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -183,6 +198,9 @@ export interface Database {
           major_target?: 'ao' | 'rg' | 'wimbledon' | 'uso' | 'finals' | null
           gameweek_number?: number | null
           join_deadline?: string | null
+          number_of_players?: number | null
+          first_round?: string | null
+          points_per_round?: Json | null
           created_at?: string
           updated_at?: string
         }

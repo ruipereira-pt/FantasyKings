@@ -1,61 +1,23 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { RefreshCw, Award, TrendingUp, Coins } from 'lucide-react';
+import { Award, TrendingUp, Coins } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import PlayerScheduleModal from './PlayerScheduleModal';
+import { usePlayers } from '../hooks/useApi';
 
 type Player = Database['public']['Tables']['players']['Row'];
 
 export default function Rankings() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  
+  const {
+    players,
+    loading,
+    fetchPlayers
+  } = usePlayers();
 
   useEffect(() => {
     fetchPlayers();
-  }, []);
-
-  async function fetchPlayers() {
-    try {
-      const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .order('live_ranking', { ascending: true, nullsFirst: false });
-
-      if (error) throw error;
-      setPlayers(data || []);
-    } catch (error) {
-      console.error('Error fetching players:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function refreshRankings() {
-    setRefreshing(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rankings`,
-        {
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to refresh rankings');
-      }
-
-      await fetchPlayers();
-    } catch (error) {
-      console.error('Error refreshing rankings:', error);
-      alert('Failed to refresh rankings. Please try again.');
-    } finally {
-      setRefreshing(false);
-    }
-  }
+  }, [fetchPlayers]);
 
   if (loading) {
     return (
@@ -67,22 +29,12 @@ export default function Rankings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
-            <TrendingUp className="h-8 w-8 text-emerald-400" />
-            <span>Live Rankings</span>
-          </h2>
-          <p className="text-slate-400 mt-1">Real-time player rankings</p>
-        </div>
-        <button
-          onClick={refreshRankings}
-          disabled={refreshing}
-          className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-        </button>
+      <div>
+        <h2 className="text-3xl font-bold text-white flex items-center space-x-3">
+          <TrendingUp className="h-8 w-8 text-emerald-400" />
+          <span>Live Rankings</span>
+        </h2>
+        <p className="text-slate-400 mt-1">Real-time player rankings</p>
       </div>
 
       {players.length === 0 ? (

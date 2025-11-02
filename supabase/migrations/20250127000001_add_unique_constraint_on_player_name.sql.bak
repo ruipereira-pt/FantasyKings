@@ -1,0 +1,13 @@
+/*
+  # Add Unique Constraint on Player Name
+  
+  This migration adds a unique constraint on the players.name column to enable
+  upsert operations using the name field for conflict resolution.
+  
+  This is needed for the Sportradar integration to work properly when upserting
+  player data using the onConflict: "name" clause.
+*/
+
+-- Add unique constraint on players.name
+ALTER TABLE players 
+ADD CONSTRAINT players_name_unique UNIQUE (name);
