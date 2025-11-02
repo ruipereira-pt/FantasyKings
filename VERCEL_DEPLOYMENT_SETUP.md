@@ -30,19 +30,21 @@ If you want to keep previews but ensure only `main` triggers production:
 
 ## ✅ Current Configuration
 
-The `vercel.json` file has been configured with:
+The `vercel.json` file has been configured with an **ignore build step script**:
 
 ```json
 {
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  }
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh"
 }
 ```
 
-However, **the main setting must be configured in Vercel Dashboard**:
+This script:
+
+- ✅ **Skips deployment** when a PR is opened (prevents preview deployments)
+- ✅ **Allows deployment** only when code is pushed/merged to `main` branch
+- ✅ **Prevents** deployments on feature branches
+
+**Additionally**, you should configure in **Vercel Dashboard**:
 
 ### Steps to Configure:
 

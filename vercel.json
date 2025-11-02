@@ -4,11 +4,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm ci",
   "framework": "vite",
-  "git": {
-    "deploymentEnabled": {
-      "main": true
-    }
-  },
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
   "rewrites": [
     {
       "source": "/(.*)",
