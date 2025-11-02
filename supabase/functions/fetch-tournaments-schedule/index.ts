@@ -199,18 +199,18 @@ Deno.serve(async (req: Request) => {
 
     // Filter to only process competitions after the last one (if exists)
     let competitionsToProcess = filteredCompetitions;
-    let competitionsToProcess = filteredCompetitions;
-    // Limit to MAX_COMPETITIONS per invocation to prevent timeout
-    if (competitionsToProcess.length > MAX_COMPETITIONS) {
-      competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
-      console.log(`Limiting to ${MAX_COMPETITIONS} competitions per invocation to prevent timeout`);
-    }
     if (lastCompetitionId) {
       const lastIndex = filteredCompetitions.findIndex((c: Competition) => c.id === lastCompetitionId);
       if (lastIndex >= 0) {
         competitionsToProcess = filteredCompetitions.slice(lastIndex + 1);
         console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
       }
+    }
+    
+    // Limit to MAX_COMPETITIONS per invocation to prevent timeout (AFTER filtering by lastCompetitionId)
+    if (competitionsToProcess.length > MAX_COMPETITIONS) {
+      competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
+      console.log(`Limiting to ${MAX_COMPETITIONS} competitions per invocation to prevent timeout`);
     }
 
     let processedCount = 0;
