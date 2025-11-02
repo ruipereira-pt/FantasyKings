@@ -10,4 +10,9 @@ export default defineConfig({
   server: {
     port: 4000,
   },
+  define: {
+    // Fix for Supabase real-time WebSocket token
+    // This prevents '__WS_TOKEN__ is not defined' errors
+    '__WS_TOKEN__': JSON.stringify(null),
+  },
 });
