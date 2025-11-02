@@ -35,7 +35,7 @@ jobs:
     needs: [wait-for-ci]
     environment:
       name: production
-      url: ${{ steps.deploy-vercel.outputs.url || steps.deploy-netlify.outputs.url || 'https://fantasykings.bolt.host' }}
+      url: ${{ steps.deploy-vercel.outputs.url || steps.deploy-vercel.outputs.preview-url || 'Deployment in progress...' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,16 +70,8 @@ jobs:
             echo "✅ VITE_SUPABASE_ANON_KEY is configured"
           fi
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          name: production-build
-          path: dist/
-          retention-days: 7
-
-      # Vercel Deployment (if using Vercel)
+      # Vercel Deployment
       - name: Deploy to Vercel
-        if: env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
         id: deploy-vercel
         uses: amondnet/vercel-action@v25
         with:
@@ -88,68 +80,26 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
           working-directory: ./
+        continue-on-error: true
 
-      # Netlify Deployment (if using Netlify)
-      - name: Deploy to Netlify
-        if: env.NETLIFY_SITE_ID != '' && env.NETLIFY_AUTH_TOKEN != ''
-        id: deploy-netlify
-        uses: netlify/actions/cli@master
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        with:
-          args: deploy --dir=dist --prod --open=false
-
-      # GitHub Pages Deployment (alternative option)
-      - name: Deploy to GitHub Pages
-        if: env.DEPLOY_TO_GH_PAGES == 'true'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          cname: fantasykings.com # Optional: set your custom domain
-
-      # AWS S3 Deployment (alternative option)
-      - name: Configure AWS credentials
-        if: env.DEPLOY_TO_S3 == 'true'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
-
-      - name: Deploy to S3
-        if: env.DEPLOY_TO_S3 == 'true'
+      - name: Check Vercel deployment status
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
-          echo "Deployed to S3: ${{ secrets.S3_BUCKET_NAME }}"
-
-      - name: Invalidate CloudFront Cache
-        if: env.DEPLOY_TO_S3 == 'true' && env.CLOUDFRONT_DISTRIBUTION_ID != ''
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-
-      # Bolt.host Deployment
-      # Note: Bolt.host typically auto-deploys on push to main via GitHub integration
-      # The build artifacts in dist/ are ready for deployment
-      # If Bolt.host is connected via GitHub, it will automatically deploy
-      # Otherwise, manually upload dist/ folder to Bolt.host dashboard
-
-      - name: Verify build artifacts
-        run: |
-          if [ ! -d "dist" ]; then
-            echo "❌ Build directory not found!"
+          if [ "${{ steps.deploy-vercel.outcome }}" != "success" ]; then
+            echo "⚠️  Vercel deployment failed or secrets not configured"
+            echo "Make sure VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID are set in GitHub Secrets"
             exit 1
+          else
+            echo "✅ Successfully deployed to Vercel"
+            echo "Production URL: ${{ steps.deploy-vercel.outputs.url }}"
           fi
-          echo "✅ Build artifacts verified"
-          echo "   Files in dist/: $(ls -1 dist | wc -l)"
-          echo "   Total size: $(du -sh dist | cut -f1)"
-          echo ""
-          echo "📦 Build is ready for deployment!"
-          echo "   - If Bolt.host has GitHub integration: Auto-deployment should trigger"
-          echo "   - If not: Upload ./dist folder manually to Bolt.host dashboard"
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: production-build
+          path: dist/
+          retention-days: 7
 
       # Deployment summary
       - name: Deployment Summary
@@ -157,12 +107,16 @@ jobs:
         run: |
           echo "## 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Production deployment completed" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.deploy-vercel.outcome }}" == "success" ]; then
+            echo "✅ **Successfully deployed to Vercel**" >> $GITHUB_STEP_SUMMARY
+            echo "- **Production URL**: ${{ steps.deploy-vercel.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Vercel deployment failed**" >> $GITHUB_STEP_SUMMARY
+            echo "- Check GitHub Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- Branch: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
           echo "- Author: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Build artifacts are available in the Actions artifacts."
 
   # Deploy Supabase Migrations (optional)
   deploy-supabase-migrations:
