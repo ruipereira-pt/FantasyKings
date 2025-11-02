@@ -84,7 +84,7 @@ async function updateAuthConfig() {
     req.on('error', (error) => {
       // Sanitize error logging to prevent log injection
       // Only log error type, not the full error object or message
-      const errorType = error?.constructor?.name || 'Unknown';
+      const errorType = (error?.constructor?.name || 'Unknown').replace(/[\r\n]/g, ' ').substring(0, 100);
       console.error('Request error: Network request failed');
       console.error('Error type:', errorType);
       reject(error);
