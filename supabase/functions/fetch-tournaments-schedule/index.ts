@@ -203,7 +203,7 @@ Deno.serve(async (req: Request) => {
       const lastIndex = filteredCompetitions.findIndex((c: Competition) => c.id === lastCompetitionId);
       if (lastIndex >= 0) {
         competitionsToProcess = filteredCompetitions.slice(lastIndex + 1);
-        console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
+          console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
       }
     }
     
@@ -239,7 +239,7 @@ Deno.serve(async (req: Request) => {
           );
         }
       try {
-        console.log(`Processing competition: ${competition.name} (${competition.id})`);
+          console.log(`Processing competition: ${competition.name} (${competition.id})`);
         
         // Add rate limiting delay
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -264,7 +264,7 @@ Deno.serve(async (req: Request) => {
         await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
 
         // Debug: Log the response structure
-        console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
+          console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
         
         // The API might return seasons directly as an array, or in a 'seasons' property
         let seasonsArray: Season[] = [];
@@ -282,7 +282,7 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
+          console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
 
         // Filter seasons for years 2025 and 2026
         const targetSeasons = seasonsArray.filter((s: Season) => 
@@ -296,8 +296,26 @@ Deno.serve(async (req: Request) => {
 
         // Step 3: For each season, GET Season Info
         for (const season of targetSeasons) {
+          // Check timeout before processing each season
+          const elapsedSeason = Date.now() - startTime;
+          if (elapsedSeason > MAX_EXECUTION_TIME) {
+            console.log(`Approaching timeout during season processing, saving progress and returning...`);
+            await saveSyncState(supabaseAdmin, competition.id);
+            return new Response(
+              JSON.stringify({
+                success: true,
+                message: `Partial completion - processed ${processedCount} competitions and ${tournamentsCreated} tournaments before timeout. Run again to continue.`,
+                processed: processedCount,
+                tournaments_created: tournamentsCreated,
+                players_updated: playersUpdated,
+                last_competition_id: competition.id,
+                partial: true
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           try {
-            console.log(`  Processing season: ${season.name} (${season.id}, ${season.year})`);
+          console.log(`  Processing season: ${season.name} (${season.id}, ${season.year})`);
             
             await new Promise(resolve => setTimeout(resolve, 2000));
 
