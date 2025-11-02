@@ -51,7 +51,6 @@ export default function TournamentAssociation({ selectedCompetition }: Tournamen
       const { data, error } = await supabase
         .from('competitions')
         .select('*')
-        .in('type', ['season', 'road_to_major', 'per_gameweek'])
         .order('name');
 
       if (error) throw error;

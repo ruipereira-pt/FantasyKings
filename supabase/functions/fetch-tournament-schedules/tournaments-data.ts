@@ -160,6 +160,16 @@ export const tournaments2025 = [
     status: "upcoming"
   },
   {
+    name: "Athens Open",
+    category: "atp_250",
+    surface: "hard",
+    location: "Athens, Greece",
+    start_date: "2025-09-15",
+    end_date: "2025-09-21",
+    prize_money: 800000,
+    status: "upcoming"
+  },
+  {
     name: "ATP Finals",
     category: "finals",
     surface: "hard",

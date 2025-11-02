@@ -1,0 +1,19 @@
+/*
+  # Add Unique Constraint on Player Name and Fix Upsert Logic
+  
+  This migration ensures that:
+  1. Player names are unique (prevents duplicates)
+  2. Ranking updates work properly without breaking relationships
+  3. We can safely use upsert operations
+*/
+
+-- Add unique constraint on players.name to prevent duplicates
+ALTER TABLE players 
+ADD CONSTRAINT players_name_unique UNIQUE (name);
+
+-- Add index for faster lookups by name
+CREATE INDEX IF NOT EXISTS idx_players_name ON players(name);
+
+-- Add a comment explaining the constraint
+COMMENT ON CONSTRAINT players_name_unique ON players IS 
+'Ensures player names are unique to prevent duplicates during ranking updates';

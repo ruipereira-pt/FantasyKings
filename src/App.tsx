@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Rankings from './components/Rankings';
@@ -11,13 +12,46 @@ import AdminPage from './components/AdminPage';
 
 type TabType = 'rankings' | 'schedule' | 'competitions' | 'leaderboard' | 'admin';
 
-const ADMIN_EMAIL = 'rui@fk.com';
+const ADMIN_EMAILS = ['rui@fk.com', 'admin@fk.com'];
+
+// Protected Route component for admin access
+function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabType>('rankings');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { user, loading } = useAuth();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
+
+  // Determine active tab based on current route
+  const getActiveTab = (): TabType => {
+    const path = location.pathname;
+    if (path === '/admin') return 'admin';
+    if (path === '/schedule') return 'schedule';
+    if (path === '/competitions') return 'competitions';
+    if (path === '/leaderboard') return 'leaderboard';
+    return 'rankings';
+  };
+
+  const activeTab = getActiveTab();
 
   if (loading) {
     return (
@@ -36,22 +70,38 @@ function AppContent() {
     );
   }
 
-  if (activeTab === 'admin') {
-    return <AdminPage />;
-  }
-
   return (
     <>
       <Layout
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          // Navigate to appropriate route when tab changes
+          const routes: Record<TabType, string> = {
+            rankings: '/',
+            schedule: '/schedule',
+            competitions: '/competitions',
+            leaderboard: '/leaderboard',
+            admin: '/admin'
+          };
+          navigate(routes[tab]);
+        }}
         onAuthClick={() => setShowAuthModal(true)}
-        isAdmin={isAdmin}
+        isAdmin={!!isAdmin}
       >
-        {activeTab === 'rankings' && <Rankings />}
-        {activeTab === 'schedule' && <Schedule />}
-        {activeTab === 'competitions' && <Competitions />}
-        {activeTab === 'leaderboard' && <Leaderboard />}
+        <Routes>
+          <Route path="/" element={<Rankings />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/competitions" element={<Competitions />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedAdminRoute>
+                <AdminPage />
+              </ProtectedAdminRoute>
+            } 
+          />
+        </Routes>
       </Layout>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </>
@@ -61,7 +111,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }

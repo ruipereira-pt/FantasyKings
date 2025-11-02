@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { RefreshCw, Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import TeamBuilder from './TeamBuilder';
+import TournamentPlayersModal from './TournamentPlayersModal';
 import { useAuth } from '../contexts/AuthContext';
 
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
@@ -55,6 +56,7 @@ export default function Schedule() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
   const [competitionsMap, setCompetitionsMap] = useState<Record<string, CompetitionInfo>>({});
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionInfo | null>(null);
+  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
 
   useEffect(() => {
     fetchTournaments();
@@ -63,6 +65,9 @@ export default function Schedule() {
 
   async function fetchTournaments() {
     try {
+      // Update tournament statuses based on dates before fetching
+      await supabase.rpc('update_tournament_status_on_dates');
+      
       const { data, error } = await supabase
         .from('tournaments')
         .select('*')
@@ -79,6 +84,9 @@ export default function Schedule() {
 
   async function fetchCompetitions() {
     try {
+      // Update competition statuses based on deadline before fetching
+      await supabase.rpc('update_competition_status_on_deadline');
+      
       const { data, error } = await supabase
         .from('competitions')
         .select('id, name, status, type, max_players, max_changes, budget, start_date, end_date, tournament_id')
@@ -196,7 +204,8 @@ export default function Schedule() {
           {filteredTournaments.map((tournament) => (
             <div
               key={tournament.id}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10"
+              onClick={() => setSelectedTournament(tournament)}
+              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -262,7 +271,8 @@ export default function Schedule() {
 
                 {competitionsMap[tournament.id] && tournament.status === 'upcoming' && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering tournament modal
                       if (!user) {
                         alert('Please sign in to join a competition');
                         return;
@@ -300,6 +310,13 @@ export default function Schedule() {
             updated_at: new Date().toISOString(),
           }}
           onClose={() => setSelectedCompetition(null)}
+        />
+      )}
+
+      {selectedTournament && (
+        <TournamentPlayersModal
+          tournament={selectedTournament}
+          onClose={() => setSelectedTournament(null)}
         />
       )}
     </div>

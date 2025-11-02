@@ -100,11 +100,12 @@ interface PerCompetitionData {
   end_date: string;
   max_players: number;
   max_changes: number;
+  tournament_id: string | null;
   tournament: {
     name: string;
     category: string;
     location: string;
-  };
+  } | null;
 }
 
 export default function Competitions() {
@@ -116,23 +117,58 @@ export default function Competitions() {
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
   const [competitionTournaments, setCompetitionTournaments] = useState<Record<string, Tournament[]>>({});
   const [dbCompetitionIds, setDbCompetitionIds] = useState<Record<string, string>>({});
+  const [competitionDeadlines, setCompetitionDeadlines] = useState<Record<string, string | null>>({});
+  const [userTeams, setUserTeams] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchPerCompetitions();
     fetchCompetitionTournaments();
-  }, []);
+    fetchUserTeams();
+  }, [user]);
+
+  const fetchUserTeams = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_teams')
+        .select(`
+          *,
+          team_players (
+            player_id,
+            players (name)
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const teamsMap: Record<string, any> = {};
+      data?.forEach(team => {
+        teamsMap[team.competition_id] = team;
+      });
+
+      setUserTeams(teamsMap);
+    } catch (error) {
+      console.error('Error fetching user teams:', error);
+    }
+  };
 
   const fetchCompetitionTournaments = async () => {
     try {
+      // Update competition statuses based on deadline before fetching
+      await supabase.rpc('update_competition_status_on_deadline');
+      
       const { data: competitions, error: compError } = await supabase
         .from('competitions')
-        .select('id, name, type')
+        .select('id, name, type, join_deadline')
         .in('type', ['season', 'road_to_major', 'per_gameweek']);
 
       if (compError) throw compError;
 
       const tournamentsMap: Record<string, Tournament[]> = {};
       const idMap: Record<string, string> = {};
+      const deadlinesMap: Record<string, string | null> = {};
 
       for (const comp of competitions || []) {
         const { data, error } = await supabase
@@ -144,6 +180,7 @@ export default function Competitions() {
 
         const tournaments = data?.map(ct => ct.tournaments).filter(Boolean) as Tournament[] || [];
         tournamentsMap[comp.id] = tournaments;
+        deadlinesMap[comp.id] = comp.join_deadline;
 
         // Map competition name to ID for matching with static types
         if (comp.name.toLowerCase().includes('season')) {
@@ -165,6 +202,7 @@ export default function Competitions() {
 
       setDbCompetitionIds(idMap);
       setCompetitionTournaments(tournamentsMap);
+      setCompetitionDeadlines(deadlinesMap);
     } catch (error) {
       console.error('Error fetching competition tournaments:', error);
     }
@@ -183,10 +221,14 @@ export default function Competitions() {
           end_date,
           max_players,
           max_changes,
-          tournaments:tournament_id (
-            name,
-            category,
-            location
+          join_deadline,
+          tournament_id,
+          competition_tournaments (
+            tournaments (
+              name,
+              category,
+              location
+            )
           )
         `)
         .eq('type', 'per_competition')
@@ -194,10 +236,25 @@ export default function Competitions() {
 
       if (error) throw error;
 
-      const formatted = data?.map(item => ({
-        ...item,
-        tournament: Array.isArray(item.tournaments) ? item.tournaments[0] : item.tournaments
-      })) || [];
+      const formatted = data?.map(item => {
+        // Handle new structure: competition_tournaments -> tournaments
+        let tournament = null;
+        if (item.competition_tournaments && Array.isArray(item.competition_tournaments) && item.competition_tournaments.length > 0) {
+          const ct = item.competition_tournaments[0];
+          if (ct.tournaments) {
+            tournament = Array.isArray(ct.tournaments) ? ct.tournaments[0] : ct.tournaments;
+          }
+        }
+        // Fallback to old structure for backwards compatibility
+        if (!tournament && item.tournaments) {
+          tournament = Array.isArray(item.tournaments) ? item.tournaments[0] : item.tournaments;
+        }
+        
+        return {
+          ...item,
+          tournament
+        };
+      }) || [];
 
       setPerCompetitions(formatted);
     } catch (error) {
@@ -293,11 +350,11 @@ export default function Competitions() {
                 key={comp.id}
                 className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10"
               >
-                <div className={`h-2 bg-gradient-to-r ${getCategoryColor(comp.tournament.category)}`}></div>
+                <div className={`h-2 bg-gradient-to-r ${comp.tournament ? getCategoryColor(comp.tournament.category) : 'from-slate-600 to-slate-700'}`}></div>
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold text-white bg-gradient-to-r ${getCategoryColor(comp.tournament.category)}`}>
-                      {getCategoryBadge(comp.tournament.category)}
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold text-white bg-gradient-to-r ${comp.tournament ? getCategoryColor(comp.tournament.category) : 'from-slate-600 to-slate-700'}`}>
+                      {comp.tournament ? getCategoryBadge(comp.tournament.category) : 'No Tournament'}
                     </span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       comp.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
@@ -305,12 +362,11 @@ export default function Competitions() {
                       comp.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
                       'bg-slate-500/20 text-slate-400'
                     }`}>
-                      {comp.status.toUpperCase()}
+                      {comp.status === 'active' ? 'IN PROGRESS' : comp.status.toUpperCase()}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white mb-1">{comp.tournament.name}</h3>
-                  <p className="text-slate-400 text-xs mb-4">{comp.tournament.location}</p>
+                  <h3 className="text-lg font-bold text-white mb-4">{comp.tournament ? comp.tournament.name : comp.name}</h3>
 
                   <div className="space-y-2 mb-4 text-xs">
                     <div className="flex items-center justify-between">
@@ -327,15 +383,61 @@ export default function Competitions() {
                       <span className="text-slate-400">Budget</span>
                       <span className="text-emerald-400 font-semibold">50 coins</span>
                     </div>
+                    {comp.join_deadline && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 flex items-center space-x-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>Join Deadline</span>
+                        </span>
+                        <span className="text-amber-400 font-medium">
+                          {new Date(comp.join_deadline).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <button
-                    onClick={() => handleJoinPerCompetition(comp)}
-                    disabled={comp.status === 'completed' || comp.status === 'upcoming'}
-                    className="w-full py-2 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {comp.status === 'active' || comp.status === 'open' ? 'Join Now' : comp.status === 'upcoming' ? 'Coming Soon' : 'Completed'}
-                  </button>
+                  {(() => {
+                    const userTeam = userTeams[comp.id];
+                    const hasPassedDeadline = comp.join_deadline && new Date(comp.join_deadline) < new Date();
+                    const canJoin = !hasPassedDeadline && (comp.status === 'active' || comp.status === 'open');
+                    
+                    if (userTeam) {
+                      return (
+                        <button
+                          onClick={() => handleJoinPerCompetition(comp)}
+                          disabled={!canJoin}
+                          className={`w-full py-2 px-4 ${
+                            canJoin 
+                              ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600' 
+                              : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                          } text-sm font-semibold rounded-lg transition-all shadow-lg ${canJoin ? 'hover:shadow-blue-500/30' : 'opacity-50'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {canJoin ? 'Edit Team' : hasPassedDeadline ? 'Registration Closed' : 'View Team'}
+                        </button>
+                      );
+                    }
+                    
+                    return (
+                      <button
+                        onClick={() => handleJoinPerCompetition(comp)}
+                        disabled={!canJoin || comp.status === 'completed' || comp.status === 'upcoming'}
+                        className="w-full py-2 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {!canJoin && hasPassedDeadline 
+                          ? 'Registration Closed' 
+                          : comp.status === 'active' || comp.status === 'open' 
+                            ? 'Join Now' 
+                            : comp.status === 'upcoming' 
+                              ? 'Coming Soon' 
+                              : 'Completed'}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -447,6 +549,22 @@ export default function Competitions() {
                     {comp.maxChanges === 0 ? 'None' : comp.maxChanges}
                   </span>
                 </div>
+                {dbId && competitionDeadlines[dbId] && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400 flex items-center space-x-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Join Deadline</span>
+                    </span>
+                    <span className="text-amber-400 font-medium">
+                      {new Date(competitionDeadlines[dbId]!).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <button
@@ -498,7 +616,7 @@ export default function Competitions() {
         />
       )}
 
-      {selectedPerCompetition && (
+      {selectedPerCompetition && selectedPerCompetition.tournament && (
         <TeamBuilder
           competition={{
             id: selectedPerCompetition.id,
@@ -510,13 +628,17 @@ export default function Competitions() {
             start_date: selectedPerCompetition.start_date,
             end_date: selectedPerCompetition.end_date,
             status: selectedPerCompetition.status as 'upcoming' | 'active' | 'completed',
-            tournament_id: selectedPerCompetition.id,
+            tournament_id: selectedPerCompetition.tournament_id,
             major_target: null,
             gameweek_number: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }}
-          onClose={() => setSelectedPerCompetition(null)}
+          existingTeam={userTeams[selectedPerCompetition.id]}
+          onClose={() => {
+            setSelectedPerCompetition(null);
+            fetchUserTeams(); // Refresh user teams after closing
+          }}
         />
       )}
     </div>

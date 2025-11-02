@@ -1,0 +1,5 @@
+# Ignore Deno Edge Functions from TypeScript checking
+# These run in Deno, not Node.js/TypeScript
+supabase/functions/**/*.ts
+supabase/functions/**/*.js
+

@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Search, Calendar, TrendingUp, Plus, Save, X } from 'lucide-react';
+import { Search, Calendar, TrendingUp, Plus, Save, X, DollarSign, Edit2 } from 'lucide-react';
 import type { Database } from '../lib/database.types';
+import PlayerScheduleModal from './PlayerScheduleModal';
 
 type Player = Database['public']['Tables']['players']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
+
+interface PriceHistoryEntry {
+  week_start_date: string;
+  price: number | string;
+  ranking: number | null;
+}
 
 interface PlayerScheduleEntry {
   id?: string;
@@ -23,6 +30,9 @@ export default function PlayerManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [addingSchedule, setAddingSchedule] = useState(false);
   const [newSchedule, setNewSchedule] = useState({ tournament_id: '', status: 'registered' });
+  const [refreshingRankings, setRefreshingRankings] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -31,8 +41,35 @@ export default function PlayerManagement() {
   useEffect(() => {
     if (selectedPlayer) {
       fetchPlayerSchedule(selectedPlayer.id);
+      fetchPriceHistory(selectedPlayer.id);
     }
   }, [selectedPlayer]);
+
+  async function fetchPriceHistory(playerId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('player_price_history')
+        .select('week_start_date, price, ranking')
+        .eq('player_id', playerId)
+        .order('week_start_date', { ascending: false })
+        .limit(12); // Last 12 weeks
+
+      if (error) {
+        // Handle case where table doesn't exist yet (migration not run)
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.warn('player_price_history table not found. Please run migrations.');
+          setPriceHistory([]);
+          return;
+        }
+        throw error;
+      }
+      setPriceHistory((data || []) as PriceHistoryEntry[]);
+    } catch (error) {
+      console.error('Error fetching price history:', error);
+      // Set empty array on any error to prevent UI breaking
+      setPriceHistory([]);
+    }
+  }
 
   async function fetchData() {
     try {
@@ -71,10 +108,10 @@ export default function PlayerManagement() {
 
       if (error) throw error;
 
-      const formattedSchedules = (data || []).map(item => ({
+      const formattedSchedules = ((data || []) as any[]).map((item: any) => ({
         id: item.id,
         tournament_id: item.tournament_id,
-        tournament_name: (item.tournament as any)?.name || 'Unknown',
+        tournament_name: item.tournament?.name || 'Unknown',
         status: item.status,
       }));
 
@@ -94,8 +131,8 @@ export default function PlayerManagement() {
         .insert({
           player_id: selectedPlayer.id,
           tournament_id: newSchedule.tournament_id,
-          status: newSchedule.status,
-        });
+          status: newSchedule.status as any,
+        } as any);
 
       if (error) throw error;
 
@@ -133,12 +170,47 @@ export default function PlayerManagement() {
     }
   }
 
+  async function refreshRankings() {
+    setRefreshingRankings(true);
+    try {
+      // Get the current user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        alert('You must be logged in to refresh rankings');
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rankings`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Successfully updated ${result.count} player rankings from ATP sources!`);
+        // Refresh the players list
+        await fetchData();
+      } else {
+        const error = await response.json();
+        alert(`Failed to refresh rankings: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error refreshing rankings:', error);
+      alert('Failed to refresh rankings. Please try again.');
+    } finally {
+      setRefreshingRankings(false);
+    }
+  }
+
   async function updateScheduleStatus(scheduleId: string, newStatus: string) {
     setSaving(true);
     try {
       const { error } = await supabase
         .from('player_schedules')
-        .update({ status: newStatus })
+        .update({ status: newStatus as any })
         .eq('id', scheduleId);
 
       if (error) throw error;
@@ -169,7 +241,7 @@ export default function PlayerManagement() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
@@ -179,6 +251,20 @@ export default function PlayerManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-400">
+              {filteredPlayers.length} players found
+            </div>
+            <button
+              onClick={refreshRankings}
+              disabled={refreshingRankings}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              <TrendingUp className="h-4 w-4" />
+              <span>{refreshingRankings ? 'Updating...' : 'Refresh ATP Rankings'}</span>
+            </button>
           </div>
         </div>
 
@@ -321,19 +407,77 @@ export default function PlayerManagement() {
           </div>
         </div>
 
+        {/* Price History Dashboard */}
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
           <div className="flex items-center space-x-3 mb-4">
-            <TrendingUp className="h-6 w-6 text-blue-400" />
-            <h3 className="text-xl font-bold text-white">History Ranking Dashboard</h3>
+            <DollarSign className="h-6 w-6 text-blue-400" />
+            <h3 className="text-xl font-bold text-white">Price History Dashboard</h3>
           </div>
           <p className="text-slate-400 mb-4">
-            View historical ranking data and performance trends.
+            Weekly price history for {selectedPlayer?.name || 'selected player'}
           </p>
-          <div className="p-6 bg-slate-900/50 rounded-lg text-center">
-            <p className="text-slate-500">
-              Historical ranking visualization coming soon.
-            </p>
+          {priceHistory.length > 0 ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-4 gap-4 text-sm font-semibold text-slate-400 pb-2 border-b border-slate-700">
+                <div>Week</div>
+                <div>Price</div>
+                <div>Ranking</div>
+                <div>Change</div>
+              </div>
+              {priceHistory.map((entry, index) => {
+                const prevEntry = priceHistory[index + 1];
+                const change = prevEntry ? Number(entry.price) - Number(prevEntry.price) : 0;
+                const weekStart = new Date(entry.week_start_date);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                
+                return (
+                  <div key={entry.week_start_date} className="grid grid-cols-4 gap-4 text-sm py-2 hover:bg-slate-900/50 rounded">
+                    <div className="text-slate-300">
+                      {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div className="text-white font-semibold">${Number(entry.price).toFixed(2)}</div>
+                    <div className="text-slate-300">#{entry.ranking || '-'}</div>
+                    <div className={change > 0 ? 'text-green-400' : change < 0 ? 'text-red-400' : 'text-slate-400'}>
+                      {change > 0 ? '+' : ''}{change.toFixed(2)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-6 bg-slate-900/50 rounded-lg text-center">
+              <p className="text-slate-500">
+                No price history available yet. Price history is recorded weekly when rankings are updated.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Player Schedule View/Edit */}
+        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Calendar className="h-6 w-6 text-emerald-400" />
+              <h3 className="text-xl font-bold text-white">Player Schedule</h3>
+            </div>
+            {selectedPlayer && (
+              <button
+                onClick={() => setShowScheduleModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              >
+                <Edit2 className="h-4 w-4" />
+                <span>View Full Schedule</span>
+              </button>
+            )}
           </div>
+          
+          {selectedPlayer && showScheduleModal && (
+            <PlayerScheduleModal 
+              player={selectedPlayer} 
+              onClose={() => setShowScheduleModal(false)} 
+            />
+          )}
         </div>
       </div>
     </div>
