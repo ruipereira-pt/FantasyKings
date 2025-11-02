@@ -141,8 +141,8 @@ export async function clearCache(supabase?: any): Promise<void> {
     }
 
     // Delete all JSON files
-    const jsonFiles = files.filter(f => f.name.endsWith('.json'));
-    const pathsToDelete = jsonFiles.map(f => f.name);
+    const jsonFiles = files.filter((f: any) => f.name.endsWith('.json'));
+    const pathsToDelete = jsonFiles.map((f: any) => f.name);
 
     if (pathsToDelete.length > 0) {
       const { error: deleteError } = await supabase.storage
