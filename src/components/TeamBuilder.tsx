@@ -80,22 +80,22 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
 
       // For per_competition type, filter by tournament participation status
       if (competition.type === 'per_competition') {
-        let tournamentId = competition.tournament_id;
+        let tournamentId = (competition as any).tournament_id;
         
         // If no direct tournament_id, fetch from competition_tournaments
         if (!tournamentId) {
           console.log('Fetching tournaments for competition:', competition.id);
-          const { data: competitionTournaments, error: ctError } = await supabase
+          const { data: competitionTournaments, error: ctError } = await (supabase
             .from('competition_tournaments')
             .select('tournament_id')
             .eq('competition_id', competition.id)
             .limit(1)
-            .maybeSingle();
+            .maybeSingle() as any);
           
           if (ctError) {
             console.error('Error fetching competition tournaments:', ctError);
           } else if (competitionTournaments) {
-            tournamentId = competitionTournaments.tournament_id;
+            tournamentId = (competitionTournaments as any).tournament_id;
             console.log('Found tournament for competition:', tournamentId);
           }
         }
@@ -199,10 +199,8 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
     try {
       if (existingTeam) {
         // Update existing team
-        const { error: teamError } = await (supabase
-          .from('user_teams')
-          .update({ team_name: teamName } as any)
-          .eq('id', existingTeam.id) as any);
+        const query1 = supabase.from('user_teams').update({ team_name: teamName } as any).eq('id', existingTeam.id);
+        const { error: teamError } = await (query1 as any);
 
         if (teamError) throw teamError;
 
