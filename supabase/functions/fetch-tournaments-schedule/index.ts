@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Import cache utility
-    let saveToCache: (endpoint: string, data: any) => Promise<void>;
+    let saveToCache: (endpoint: string, data: any, supabase?: any) => Promise<void>;
     try {
       const cacheModule = await import('../_shared/sportradar-cache.ts');
       saveToCache = cacheModule.saveToCache;
@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
     const competitionsData = await competitionsResponse.json();
     
     // Save raw response
-    await saveToCache(competitionsEndpoint, competitionsData);
+    await saveToCache(competitionsEndpoint, competitionsData, supabaseAdmin);
     console.log(`Found ${competitionsData.competitions?.length || 0} competitions`);
 
     if (!competitionsData.competitions || !Array.isArray(competitionsData.competitions)) {
@@ -181,15 +181,31 @@ Deno.serve(async (req: Request) => {
         }
 
         const seasonsData = await seasonsResponse.json();
-        await saveToCache(seasonsEndpoint, seasonsData);
+        await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
 
-        if (!seasonsData.seasons || !Array.isArray(seasonsData.seasons)) {
-          console.log(`No seasons found for ${competition.name}`);
+        // Debug: Log the response structure
+        console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
+        
+        // The API might return seasons directly as an array, or in a 'seasons' property
+        let seasonsArray: Season[] = [];
+        if (Array.isArray(seasonsData)) {
+          seasonsArray = seasonsData;
+        } else if (seasonsData.seasons && Array.isArray(seasonsData.seasons)) {
+          seasonsArray = seasonsData.seasons;
+        } else if (seasonsData.data && Array.isArray(seasonsData.data)) {
+          seasonsArray = seasonsData.data;
+        }
+
+        if (seasonsArray.length === 0) {
+          console.log(`No seasons found for ${competition.name}. Response keys: ${Object.keys(seasonsData).join(', ')}`);
+          console.log(`Full response sample: ${JSON.stringify(seasonsData).substring(0, 500)}`);
           continue;
         }
 
+        console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
+
         // Filter seasons for years 2025 and 2026
-        const targetSeasons = seasonsData.seasons.filter((s: Season) => 
+        const targetSeasons = seasonsArray.filter((s: Season) => 
           s.year === 2025 || s.year === 2026
         );
 
@@ -220,7 +236,7 @@ Deno.serve(async (req: Request) => {
             }
 
             const seasonInfo: SeasonInfo = await seasonInfoResponse.json();
-            await saveToCache(seasonInfoEndpoint, seasonInfo);
+            await saveToCache(seasonInfoEndpoint, seasonInfo, supabaseAdmin);
 
             // Extract venue from complex
             const venue = seasonInfo.complex 
@@ -253,14 +269,19 @@ Deno.serve(async (req: Request) => {
               .single();
 
             if (tournamentError) {
-              console.error(`Error upserting tournament:`, tournamentError);
+              console.error(`Error upserting tournament for ${competition.name}/${season.name}:`, tournamentError);
+              console.error(`Tournament data:`, JSON.stringify(tournamentData).substring(0, 300));
               continue;
             }
 
-            if (tournament) {
-              tournamentsCreated++;
-              console.log(`    ✓ Tournament created/updated: ${tournament.name}`);
+            if (!tournament) {
+              console.error(`Tournament upsert returned no data for ${competition.name}/${season.name}`);
+              continue;
             }
+
+            tournamentsCreated++;
+            console.log(`    ✓ Tournament created/updated: ${tournament.name} (ID: ${tournament.id})`);
+
 
             // Step 4: Update player schedules from stages (qualification and main draw)
             if (seasonInfo.stages && Array.isArray(seasonInfo.stages)) {
