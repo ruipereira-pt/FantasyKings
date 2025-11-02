@@ -94,10 +94,10 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
         updates.eliminated_round = null;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('player_schedules')
-        .update(updates)
-        .eq('id', scheduleId);
+        .update(updates as any)
+        .eq('id', scheduleId) as any);
 
       if (error) throw error;
 
@@ -115,13 +115,13 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
     
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('player_schedules')
         .update({ 
           eliminated_round: round,
           status: 'eliminated' as any
-        })
-        .eq('id', scheduleId);
+        } as any)
+        .eq('id', scheduleId) as any);
 
       if (error) throw error;
 

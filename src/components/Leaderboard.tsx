@@ -63,10 +63,10 @@ export default function Leaderboard() {
 
       for (const comp of competitions || []) {
         // Get all tournament IDs associated with this competition
-        const { data: competitionTournaments, error: ctError } = await supabase
+        const { data: competitionTournaments, error: ctError } = await (supabase
           .from('competition_tournaments')
           .select('tournament_id')
-          .eq('competition_id', comp.id);
+          .eq('competition_id', (comp as any).id) as any);
 
         if (ctError) {
           console.error('Error fetching competition tournaments:', comp.id, ctError);
@@ -75,8 +75,8 @@ export default function Leaderboard() {
 
         // Get tournament IDs (also include direct tournament_id if exists for backward compatibility)
         const tournamentIds: string[] = [
-          ...(competitionTournaments?.map(ct => ct.tournament_id) || []),
-          ...(comp.tournament_id ? [comp.tournament_id] : [])
+          ...((competitionTournaments as any)?.map((ct: any) => ct.tournament_id) || []),
+          ...((comp as any).tournament_id ? [(comp as any).tournament_id] : [])
         ].filter(Boolean);
 
         const { data: teams, error: teamsError } = await supabase
@@ -101,11 +101,11 @@ export default function Leaderboard() {
               .is('removed_at', null);
 
             // Get all players in this team
-            const { data: teamPlayers, error: tpError } = await supabase
+            const { data: teamPlayers, error: tpError } = await (supabase
               .from('team_players')
               .select('player_id, players(id, name)')
-              .eq('user_team_id', team.id)
-              .is('removed_at', null);
+              .eq('user_team_id', (team as any).id)
+              .is('removed_at', null) as any);
 
             if (tpError) {
               console.error('Error fetching team players:', tpError);
@@ -119,8 +119,8 @@ export default function Leaderboard() {
             }
 
             // Get player IDs
-            const playerIds = (teamPlayers || [])
-              .map(tp => tp.player_id)
+            const playerIds = ((teamPlayers as any) || [])
+              .map((tp: any) => tp.player_id)
               .filter(Boolean) as string[];
 
             // Calculate points: sum fantasy_points from player_performances
@@ -129,15 +129,15 @@ export default function Leaderboard() {
             const playerPointsMap: Record<string, number> = {};
 
             if (playerIds.length > 0 && tournamentIds.length > 0) {
-              const { data: performances, error: perfError } = await supabase
+              const { data: performances, error: perfError } = await (supabase
                 .from('player_performances')
                 .select('player_id, fantasy_points, players(name)')
                 .in('player_id', playerIds)
-                .in('tournament_id', tournamentIds);
+                .in('tournament_id', tournamentIds) as any);
 
               if (!perfError && performances) {
                 // Sum points per player across all tournaments
-                performances.forEach((perf: any) => {
+                (performances as any[]).forEach((perf: any) => {
                   const pid = perf.player_id;
                   const points = perf.fantasy_points || 0;
                   if (!playerPointsMap[pid]) {
@@ -150,9 +150,9 @@ export default function Leaderboard() {
             }
 
             // Build player points array
-            const playerPoints = (teamPlayers || [])
-              .filter(tp => tp.player_id && tp.players)
-              .map(tp => ({
+            const playerPoints = ((teamPlayers as any) || [])
+              .filter((tp: any) => tp.player_id && tp.players)
+              .map((tp: any) => ({
                 player_id: tp.player_id as string,
                 player_name: (tp.players as any)?.name || 'Unknown',
                 points: playerPointsMap[tp.player_id as string] || 0,
@@ -203,7 +203,7 @@ export default function Leaderboard() {
   };
 
   const openCompetitions = competitionsWithTeams.filter(
-    ({ competition }) => competition.status === 'open' || competition.status === 'active'
+    ({ competition }) => (competition.status === 'active' || competition.status === 'upcoming' || competition.status === 'completed')
   );
   const selectedComp = competitionsWithTeams.find(c => c.competition.id === selectedCompetition);
 

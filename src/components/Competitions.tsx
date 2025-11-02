@@ -5,6 +5,7 @@ import TeamBuilder from './TeamBuilder';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 
+type Competition = Database['public']['Tables']['competitions']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
 
 interface CompetitionType {
@@ -101,6 +102,7 @@ interface PerCompetitionData {
   max_players: number;
   max_changes: number;
   tournament_id: string | null;
+  join_deadline: string | null;
   tournament: {
     name: string;
     category: string;
@@ -613,7 +615,7 @@ export default function Competitions() {
 
       {selectedCompetition && (
         <TeamBuilder
-          competition={mockCompetitionData}
+          competition={mockCompetitionData as Competition}
           onClose={() => setSelectedCompetition(null)}
         />
       )}
@@ -633,9 +635,13 @@ export default function Competitions() {
             tournament_id: selectedPerCompetition.tournament_id,
             major_target: null,
             gameweek_number: null,
+            join_deadline: selectedPerCompetition.join_deadline,
+            number_of_players: null,
+            first_round: null,
+            points_per_round: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          }}
+          } as Competition}
           existingTeam={userTeams[selectedPerCompetition.id]}
           onClose={() => {
             setSelectedPerCompetition(null);

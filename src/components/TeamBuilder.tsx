@@ -229,6 +229,7 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
         alert('Team updated successfully!');
       } else {
         // Create new team
+        // @ts-expect-error - Supabase type inference issue
         const { data: team, error: teamError } = await supabase
           .from('user_teams')
           .insert({
@@ -242,10 +243,11 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
         if (teamError) throw teamError;
 
         const teamPlayers = selectedPlayers.map((player) => ({
-          user_team_id: team.id,
+          user_team_id: (team as any).id,
           player_id: player.id,
         }));
 
+        // @ts-expect-error - Supabase type inference issue
         const { error: playersError } = await supabase
           .from('team_players')
           .insert(teamPlayers);

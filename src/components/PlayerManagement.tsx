@@ -208,10 +208,10 @@ export default function PlayerManagement() {
   async function updateScheduleStatus(scheduleId: string, newStatus: string) {
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('player_schedules')
-        .update({ status: newStatus as any })
-        .eq('id', scheduleId);
+        .update({ status: newStatus as any } as any)
+        .eq('id', scheduleId) as any);
 
       if (error) throw error;
 

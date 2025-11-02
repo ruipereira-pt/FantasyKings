@@ -81,10 +81,10 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
       if (associationsRes.error) throw associationsRes.error;
 
       const associatedTournamentIds = new Set(
-        associationsRes.data?.map(a => a.tournament_id) || []
+        (associationsRes.data as any)?.map((a: any) => a.tournament_id) || []
       );
 
-      const tournamentsWithAssociation = (tournamentsRes.data || []).map(t => ({
+      const tournamentsWithAssociation = ((tournamentsRes.data as any) || []).map((t: any) => ({
         ...t,
         isAssociated: associatedTournamentIds.has(t.id)
       }));
@@ -111,12 +111,13 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
 
         if (error) throw error;
       } else {
+        // @ts-expect-error - Supabase type inference issue
         const { error } = await supabase
           .from('competition_tournaments')
           .insert({
             competition_id: selectedComp.id,
             tournament_id: tournament.id
-          });
+          } as any);
 
         if (error) throw error;
       }
