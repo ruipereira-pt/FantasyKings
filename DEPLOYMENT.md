@@ -93,22 +93,19 @@ Bolt.host automatically deploys from your GitHub repository when changes are pus
 
 **⚠️ IMPORTANT: Environment Variables Configuration**
 
-The app supports **both** naming conventions:
+The app uses **Vite's standard naming convention** - all environment variables must be prefixed with `VITE_`:
 
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (standard Vite convention)
-- `SUPABASE_URL` / `SUPABASE_ANON_KEY` (also supported for compatibility)
-
-**If you already have `SUPABASE_URL` and `SUPABASE_ANON_KEY` set:**
-✅ No changes needed! Just trigger a new deployment and the app will use them.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
 **If you need to set them up:**
 
 1. Go to your Bolt.host dashboard
 2. Navigate to your project settings
 3. Find "Environment Variables" or "Build Environment Variables"
-4. Add either naming convention:
-   - `SUPABASE_URL` (or `VITE_SUPABASE_URL`): Your Supabase project URL
-   - `SUPABASE_ANON_KEY` (or `VITE_SUPABASE_ANON_KEY`): Your Supabase anon/public key
+4. Add these variables with the **exact** names:
+   - `VITE_SUPABASE_URL`: Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public key
 
 **To get Supabase credentials:**
 
@@ -116,8 +113,8 @@ The app supports **both** naming conventions:
 2. Select your project
 3. Go to **Settings** → **API**
 4. Copy:
-   - **Project URL** → Use as `SUPABASE_URL` or `VITE_SUPABASE_URL`
-   - **anon public** key → Use as `SUPABASE_ANON_KEY` or `VITE_SUPABASE_ANON_KEY`
+   - **Project URL** → Use as `VITE_SUPABASE_URL`
+   - **anon public** key → Use as `VITE_SUPABASE_ANON_KEY`
 
 **After setting environment variables:**
 
@@ -253,8 +250,8 @@ npm run lint
 
 - ⚠️ **Most Common Issue**: Environment variables must be set in **Bolt.host dashboard**, not just in GitHub Secrets
 - Go to Bolt.host project settings → Environment Variables
-- Add either `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` OR `SUPABASE_URL`/`SUPABASE_ANON_KEY`
-- The app supports both naming conventions automatically
+- **Important**: Variables must be named with `VITE_` prefix: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- Variables must be marked for "Build" or "Both" (not just "Runtime")
 - Trigger a new deployment after adding variables
 
 **For Other Platforms:**

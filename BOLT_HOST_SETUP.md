@@ -12,26 +12,22 @@ This happens because Vite requires environment variables to be available **durin
 
 ## ✅ Quick Fix
 
-Your app now supports **both** naming conventions:
+Your app uses **Vite's standard naming convention** - all environment variables must be prefixed with `VITE_`:
 
-- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (recommended)
-- `SUPABASE_URL` / `SUPABASE_ANON_KEY` (also works)
-
-### If You Already Have `SUPABASE_URL` and `SUPABASE_ANON_KEY`
-
-✅ **You're all set!** The code will automatically use those variables. Just trigger a new deployment.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
 ### If You Need to Set Them Up
 
 1. Log into [Bolt.host Dashboard](https://bolt.host/dashboard)
 2. Find your **FantasyKings** project
 3. Go to **Project Settings** → **Environment Variables** (or **Build Settings**)
-4. Add these variables (use **either** naming convention):
+4. Add these variables with the **exact** names:
 
-| Variable Name                                   | Value                         | Notes        |
-| ----------------------------------------------- | ----------------------------- | ------------ |
-| `SUPABASE_URL` OR `VITE_SUPABASE_URL`           | Your Supabase Project URL     | Either works |
-| `SUPABASE_ANON_KEY` OR `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Either works |
+| Variable Name            | Value                         | Notes                          |
+| ------------------------ | ----------------------------- | ------------------------------ |
+| `VITE_SUPABASE_URL`      | Your Supabase Project URL     | Must start with `VITE_` prefix |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key | Must start with `VITE_` prefix |
 
 **To get your Supabase credentials:**
 
@@ -39,8 +35,8 @@ Your app now supports **both** naming conventions:
 2. Select your FantasyKings project
 3. Navigate to **Settings** → **API**
 4. Copy:
-   - **Project URL** → Use as `SUPABASE_URL` or `VITE_SUPABASE_URL`
-   - **anon public** key → Use as `SUPABASE_ANON_KEY` or `VITE_SUPABASE_ANON_KEY`
+   - **Project URL** → Use as `VITE_SUPABASE_URL`
+   - **anon public** key → Use as `VITE_SUPABASE_ANON_KEY`
 
 ### Step 3: Trigger a New Deployment
 
@@ -57,7 +53,7 @@ After adding the environment variables:
 
 ## 📝 Important Notes
 
-- ✅ Supports both `VITE_` prefixed and non-prefixed variable names
+- ✅ **Must use `VITE_` prefix** - This is Vite's standard requirement
 - ✅ Variables are embedded at **build time**, not runtime
 - ✅ You must redeploy after adding/changing variables
 - ✅ Double-check for typos in variable names
@@ -67,9 +63,9 @@ After adding the environment variables:
 
 ### Still seeing the error?
 
-1. **Check variable names**: Must be exactly one of:
-   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (recommended)
-   - OR `SUPABASE_URL` and `SUPABASE_ANON_KEY` (also supported)
+1. **Check variable names**: Must be exactly:
+   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+   - **Note**: The `VITE_` prefix is required - Vite only exposes variables with this prefix
 
 2. **Check values**:
    - Ensure no extra spaces or quotes
@@ -94,10 +90,9 @@ After adding the environment variables:
 
 ### If variables still don't work:
 
-1. **Try using VITE\_ prefix explicitly**:
-   - Set `VITE_SUPABASE_URL` (instead of `SUPABASE_URL`)
-   - Set `VITE_SUPABASE_ANON_KEY` (instead of `SUPABASE_ANON_KEY`)
-   - Vite requires `VITE_` prefix by default, but our config supports both
+1. **Verify VITE\_ prefix**:
+   - Variables **must** be named `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+   - Vite only exposes environment variables that start with `VITE_`
 
 2. **Check build logs for errors**:
    - Look for messages about environment variables
