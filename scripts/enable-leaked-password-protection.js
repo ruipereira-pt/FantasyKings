@@ -56,21 +56,24 @@ async function updateAuthConfig() {
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           console.log('✅ Successfully enabled leaked password protection!');
-          console.log('Response:', body);
+          // Don't log full response body as it may contain sensitive config data
+          console.log('Response status:', res.statusCode);
           resolve(JSON.parse(body));
         } else {
-          console.error(`❌ Error: ${res.statusCode}`);
-          console.error('Response:', body);
+          console.error(`❌ Error: HTTP ${res.statusCode}`);
+          // Don't log full response body as it may contain sensitive data
           
           // Parse error message if possible
           let errorMessage = `HTTP ${res.statusCode}`;
           try {
             const errorBody = JSON.parse(body);
-            if (errorBody.message) {
-              errorMessage = errorBody.message;
+            if (errorBody.message && typeof errorBody.message === 'string') {
+              // Sanitize error message
+              errorMessage = errorBody.message.replace(/[\r\n]/g, ' ').substring(0, 200);
             }
           } catch (e) {
-            errorMessage = body;
+            // If body is not JSON, use status code only
+            errorMessage = `HTTP ${res.statusCode}`;
           }
           
           reject(new Error(errorMessage));
@@ -79,7 +82,10 @@ async function updateAuthConfig() {
     });
 
     req.on('error', (error) => {
-      console.error('Request error:', error);
+      // Sanitize error logging to prevent log injection
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('Request error: Network request failed');
+      console.error('Error type:', error?.constructor?.name || 'Unknown');
       reject(error);
     });
 
@@ -113,7 +119,8 @@ async function getAuthConfig() {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(JSON.parse(body));
         } else {
-          reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+          // Don't include response body in error to avoid logging sensitive data
+          reject(new Error(`HTTP ${res.statusCode}`));
         }
       });
     });
@@ -133,7 +140,8 @@ async function main() {
       process.exit(0);
     }
     
-    console.log(`Current password_hibp_enabled: ${currentConfig.password_hibp_enabled}`);
+    // Don't log sensitive config data
+    console.log('Current status: password_hibp_enabled is false');
     console.log('\n🔒 Attempting to enable leaked password protection...');
     
     await updateAuthConfig();
@@ -147,9 +155,14 @@ async function main() {
       console.log('Please verify in the dashboard: https://supabase.com/dashboard/project/' + PROJECT_REF + '/auth/providers');
     }
   } catch (error) {
-    console.error('\n❌ Failed to update auth configuration:', error.message);
+    // Sanitize error message to prevent log injection
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const sanitizedMsg = errorMsg.replace(/[\r\n]/g, ' ').substring(0, 200); // Limit length and remove newlines
     
-    if (error.message.includes('Pro Plans')) {
+    console.error('\n❌ Failed to update auth configuration');
+    
+    // Check for specific error patterns without logging full message
+    if (errorMsg.includes('Pro Plans')) {
       console.error('\n⚠️  This feature requires a Supabase Pro Plan or higher.');
       console.error('   Please upgrade your plan at: https://supabase.com/dashboard/org/_/billing');
       console.error('   Or enable it manually after upgrading:');
