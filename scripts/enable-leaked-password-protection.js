@@ -83,9 +83,10 @@ async function updateAuthConfig() {
 
     req.on('error', (error) => {
       // Sanitize error logging to prevent log injection
-      const errorMsg = error instanceof Error ? error.message : String(error);
+      // Only log error type, not the full error object or message
+      const errorType = error?.constructor?.name || 'Unknown';
       console.error('Request error: Network request failed');
-      console.error('Error type:', error?.constructor?.name || 'Unknown');
+      console.error('Error type:', errorType);
       reject(error);
     });
 
@@ -132,7 +133,9 @@ async function getAuthConfig() {
 
 async function main() {
   try {
-    console.log(`📋 Checking current auth configuration for project: ${PROJECT_REF}`);
+    // Sanitize PROJECT_REF to prevent log injection
+    const sanitizedProjectRef = PROJECT_REF.replace(/[^\w-]/g, '');
+    console.log(`📋 Checking current auth configuration for project: ${sanitizedProjectRef}`);
     const currentConfig = await getAuthConfig();
     
     if (currentConfig.password_hibp_enabled) {
@@ -152,12 +155,13 @@ async function main() {
       console.log('\n✨ Success! Leaked password protection (HaveIBeenPwned) is now enabled.');
     } else {
       console.log('\n⚠️  Warning: Update completed but password_hibp_enabled is still false.');
-      console.log('Please verify in the dashboard: https://supabase.com/dashboard/project/' + PROJECT_REF + '/auth/providers');
+      // Sanitize PROJECT_REF to prevent log injection
+      const sanitizedProjectRef = PROJECT_REF.replace(/[^\w-]/g, '');
+      console.log('Please verify in the dashboard: https://supabase.com/dashboard/project/' + sanitizedProjectRef + '/auth/providers');
     }
   } catch (error) {
     // Sanitize error message to prevent log injection
     const errorMsg = error instanceof Error ? error.message : String(error);
-    const sanitizedMsg = errorMsg.replace(/[\r\n]/g, ' ').substring(0, 200); // Limit length and remove newlines
     
     console.error('\n❌ Failed to update auth configuration');
     
@@ -169,7 +173,9 @@ async function main() {
     } else {
       console.error('\n💡 Alternative: Enable it manually via Supabase Dashboard:');
     }
-    console.error('   1. Go to: https://supabase.com/dashboard/project/' + PROJECT_REF + '/auth/providers');
+    // Sanitize PROJECT_REF to prevent log injection
+    const sanitizedProjectRef = PROJECT_REF.replace(/[^\w-]/g, '');
+    console.error('   1. Go to: https://supabase.com/dashboard/project/' + sanitizedProjectRef + '/auth/providers');
     console.error('   2. Navigate to Authentication → Settings');
     console.error('   3. Enable "Password Protection" or "HaveIBeenPwned Integration"');
     process.exit(1);
