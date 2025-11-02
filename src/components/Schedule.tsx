@@ -6,6 +6,7 @@ import TeamBuilder from './TeamBuilder';
 import TournamentPlayersModal from './TournamentPlayersModal';
 import { useAuth } from '../contexts/AuthContext';
 
+type Competition = Database['public']['Tables']['competitions']['Row'];
 type Tournament = Database['public']['Tables']['tournaments']['Row'];
 
 interface CompetitionInfo {
@@ -306,9 +307,13 @@ export default function Schedule() {
             tournament_id: selectedCompetition.tournament_id,
             major_target: null,
             gameweek_number: null,
+            join_deadline: null,
+            number_of_players: null,
+            first_round: null,
+            points_per_round: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          }}
+          } as Competition}
           onClose={() => setSelectedCompetition(null)}
         />
       )}

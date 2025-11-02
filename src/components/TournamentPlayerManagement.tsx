@@ -96,7 +96,7 @@ export default function TournamentPlayerManagement() {
     setSaving(true);
     try {
       const query = (supabase.from('player_schedules').update({ status: newStatus as any } as any).eq('id', scheduleId) as any);
-      const { error } = await query;
+      const { error } = await (query as any);
 
       if (error) {
         console.error('Update error details:', error);

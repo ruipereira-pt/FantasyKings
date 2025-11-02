@@ -147,7 +147,7 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
       }
 
       const query = (supabase.from('competitions').update(updates as any).eq('id', selectedComp.id) as any);
-      const { error } = await query;
+      const { error } = await (query as any);
 
       if (error) throw error;
 
