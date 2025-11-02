@@ -301,9 +301,11 @@ Deno.serve(async (req: Request) => {
             
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const seasonInfoEndpoint = `/seasons/${season.id}/info.json`;
+            const locale = "en";
+            const format = "json";
+            const seasonInfoEndpoint = `/${locale}/seasons/${season.id}/info.${format}`;
             const seasonInfoResponse = await fetch(
-              `https://api.sportradar.com/tennis/trial/v3/en${seasonInfoEndpoint}?api_key=${apiKey}`
+              `https://api.sportradar.com/tennis/trial/v3${seasonInfoEndpoint}?api_key=${apiKey}`
             );
 
             if (!seasonInfoResponse.ok) {
