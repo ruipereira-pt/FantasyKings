@@ -270,8 +270,8 @@ export default function Leaderboard() {
           </div>
           
           {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
+          <div className="hidden md:block overflow-x-auto max-w-full">
+            <table className="w-full min-w-0">
               <thead>
                 <tr className="bg-slate-900/50 border-b border-slate-700">
                   <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">

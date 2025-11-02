@@ -168,47 +168,47 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
   const isOngoing = selectedTournament.status === 'ongoing';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Tournament Info */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white">{selectedTournament.name}</h3>
-            <p className="text-slate-400 mt-1">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg sm:text-xl font-bold text-white truncate">{selectedTournament.name}</h3>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
               {new Date(selectedTournament.start_date).toLocaleDateString()} - {new Date(selectedTournament.end_date).toLocaleDateString()}
             </p>
-            <p className="text-slate-400">{selectedTournament.location}</p>
-            <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+            <p className="text-xs sm:text-sm text-slate-400 truncate">{selectedTournament.location}</p>
+            <span className={`inline-block mt-2 px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
               isOngoing ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
             }`}>
               {selectedTournament.status}
             </span>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-slate-400">Total Players</div>
-            <div className="text-3xl font-bold text-emerald-400">{players.length}</div>
+          <div className="text-left sm:text-right flex-shrink-0">
+            <div className="text-xs sm:text-sm text-slate-400">Total Players</div>
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-400">{players.length}</div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
             <input
               type="text"
               placeholder="Search players..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <option value="all">All Statuses</option>
               <option value="confirmed">Confirmed</option>
@@ -223,8 +223,8 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
       </div>
 
       {/* Players List */}
-      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-4">Players ({filteredPlayers.length})</h3>
+      <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-bold text-white mb-3 sm:mb-4">Players ({filteredPlayers.length})</h3>
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -235,37 +235,38 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
             <p className="text-slate-400">No players found</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 sm:space-y-3">
             {filteredPlayers.map((schedule) => (
               <div
                 key={schedule.id}
-                className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-slate-900/50 border border-slate-700 rounded-lg hover:border-slate-600 transition-colors"
               >
-                <div className="flex items-center space-x-4 flex-1">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-slate-300 font-bold text-sm">
+                <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                  <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm flex-shrink-0">
                     {schedule.players.ranking || '-'}
                   </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-white">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white text-sm sm:text-base truncate">
                       {schedule.players.name}
                       {schedule.seed_number && (
-                        <span className="ml-2 px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">
+                        <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-bold">
                           #{schedule.seed_number}
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-slate-400">
+                    <div className="text-xs sm:text-sm text-slate-400 truncate">
                       {schedule.players.country} • {schedule.entry_type}
                       {schedule.status === 'eliminated' && schedule.eliminated_round && (
-                        <span className="ml-2 text-red-400">Eliminated in {schedule.eliminated_round.toUpperCase()}</span>
+                        <span className="ml-1 sm:ml-2 text-red-400">Eliminated in {schedule.eliminated_round.toUpperCase()}</span>
                       )}
                     </div>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(schedule.status)}`}>
-                    {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
+                  <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${getStatusColor(schedule.status)}`}>
+                    <span className="hidden sm:inline">{schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}</span>
+                    <span className="sm:hidden">{schedule.status.charAt(0).toUpperCase()}</span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 ml-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2">
                   {isOngoing && schedule.status !== 'champion' && schedule.status !== 'withdrawn' && (
                     <select
                       value={eliminatedRound[schedule.id] || ''}
@@ -275,7 +276,7 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
                         }
                       }}
                       disabled={saving || schedule.status === ('withdrawn' as any)}
-                      className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      className="px-2 sm:px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                     >
                       <option value="">Select round...</option>
                       <option value="r128">Round of 128</option>
@@ -291,7 +292,7 @@ export default function CompetitionTournamentPlayers({ selectedTournament }: Com
                     value={schedule.status}
                     onChange={(e) => updatePlayerStatus(schedule.id, e.target.value)}
                     disabled={saving}
-                    className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                    className="px-2 sm:px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
                   >
                     <option value="confirmed">Confirmed</option>
                     <option value="qualifying">Qualifying</option>

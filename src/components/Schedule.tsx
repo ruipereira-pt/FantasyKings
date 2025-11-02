@@ -176,12 +176,12 @@ export default function Schedule() {
         </button>
       </div>
 
-      <div className="flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex flex-wrap gap-2 w-full">
         {(['all', 'upcoming', 'ongoing', 'completed'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-3 sm:px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all text-sm sm:text-base ${
+            className={`px-3 sm:px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all text-sm sm:text-base flex-shrink-0 ${
               filter === status
                 ? 'bg-emerald-500 text-white'
                 : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'

@@ -49,8 +49,8 @@ export default function Rankings() {
         <>
           {/* Desktop Table View */}
           <div className="hidden md:block bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto max-w-full">
+              <table className="w-full min-w-0">
                 <thead>
                   <tr className="bg-slate-900/50 border-b border-slate-700">
                     <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
