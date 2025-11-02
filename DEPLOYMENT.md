@@ -5,6 +5,7 @@ This guide explains how to configure production deployments that trigger automat
 ## 🚀 Deployment Workflow
 
 The deployment workflow (`.github/workflows/deploy.yml`) automatically:
+
 1. ✅ Waits for CI checks to pass
 2. ✅ Builds the application
 3. ✅ Deploys to your chosen platform
@@ -15,6 +16,7 @@ The deployment workflow (`.github/workflows/deploy.yml`) automatically:
 ### Option 1: Vercel (Recommended for Vite/React)
 
 **Setup:**
+
 1. Install Vercel CLI: `npm i -g vercel`
 2. Login: `vercel login`
 3. Link project: `vercel link`
@@ -23,11 +25,13 @@ The deployment workflow (`.github/workflows/deploy.yml`) automatically:
    - Find Org ID in Vercel dashboard
 
 **GitHub Secrets Required:**
+
 - `VERCEL_TOKEN`: Personal access token from Vercel
 - `VERCEL_ORG_ID`: Your Vercel organization ID
 - `VERCEL_PROJECT_ID`: Your Vercel project ID
 
 **To get VERCEL_TOKEN:**
+
 1. Go to https://vercel.com/account/tokens
 2. Create a new token
 3. Copy and add to GitHub Secrets
@@ -35,14 +39,17 @@ The deployment workflow (`.github/workflows/deploy.yml`) automatically:
 ### Option 2: Netlify
 
 **Setup:**
+
 1. Create a Netlify site
 2. Get Site ID from site settings
 
 **GitHub Secrets Required:**
+
 - `NETLIFY_AUTH_TOKEN`: Personal access token from Netlify
 - `NETLIFY_SITE_ID`: Your Netlify site ID
 
 **To get NETLIFY_AUTH_TOKEN:**
+
 1. Go to https://app.netlify.com/user/applications/personal
 2. Create a new access token
 3. Copy and add to GitHub Secrets
@@ -50,19 +57,23 @@ The deployment workflow (`.github/workflows/deploy.yml`) automatically:
 ### Option 3: GitHub Pages
 
 **Setup:**
+
 1. Enable GitHub Pages in repository settings
 2. Set source branch to `gh-pages`
 
 **Environment Variable:**
+
 - Set `DEPLOY_TO_GH_PAGES: 'true'` in workflow (edit `.github/workflows/deploy.yml`)
 
 **Custom Domain:**
+
 - Update `cname` in the workflow file
 - Add CNAME file in your repository
 
 ### Option 4: AWS S3 + CloudFront
 
 **GitHub Secrets Required:**
+
 - `AWS_ACCESS_KEY_ID`: AWS access key
 - `AWS_SECRET_ACCESS_KEY`: AWS secret key
 - `AWS_REGION`: AWS region (e.g., `us-east-1`)
@@ -70,9 +81,51 @@ The deployment workflow (`.github/workflows/deploy.yml`) automatically:
 - `CLOUDFRONT_DISTRIBUTION_ID`: (Optional) CloudFront distribution ID
 
 **Environment Variable:**
+
 - Set `DEPLOY_TO_S3: 'true'` in workflow
 
-### Option 5: Custom/Manual Deployment
+### Option 5: Bolt.host
+
+**Current Production URL**: https://fantasykings.bolt.host
+
+**Setup:**
+Bolt.host automatically deploys from your GitHub repository when changes are pushed to `main`.
+
+**⚠️ IMPORTANT: Environment Variables Configuration**
+
+The app supports **both** naming conventions:
+
+- `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (standard Vite convention)
+- `SUPABASE_URL` / `SUPABASE_ANON_KEY` (also supported for compatibility)
+
+**If you already have `SUPABASE_URL` and `SUPABASE_ANON_KEY` set:**
+✅ No changes needed! Just trigger a new deployment and the app will use them.
+
+**If you need to set them up:**
+
+1. Go to your Bolt.host dashboard
+2. Navigate to your project settings
+3. Find "Environment Variables" or "Build Environment Variables"
+4. Add either naming convention:
+   - `SUPABASE_URL` (or `VITE_SUPABASE_URL`): Your Supabase project URL
+   - `SUPABASE_ANON_KEY` (or `VITE_SUPABASE_ANON_KEY`): Your Supabase anon/public key
+
+**To get Supabase credentials:**
+
+1. Go to https://supabase.com/dashboard
+2. Select your project
+3. Go to **Settings** → **API**
+4. Copy:
+   - **Project URL** → Use as `SUPABASE_URL` or `VITE_SUPABASE_URL`
+   - **anon public** key → Use as `SUPABASE_ANON_KEY` or `VITE_SUPABASE_ANON_KEY`
+
+**After setting environment variables:**
+
+- Trigger a new deployment in Bolt.host (or push a new commit to `main`)
+- The build will include the environment variables
+- Your app should now work correctly
+
+### Option 6: Custom/Manual Deployment
 
 If you prefer manual deployment or a different platform:
 
@@ -95,6 +148,7 @@ Add the secrets for your chosen platform (see above).
 ### 3. Configure Environment Variables
 
 For all deployment methods, ensure these are set:
+
 - `VITE_SUPABASE_URL`: Already configured
 - `VITE_SUPABASE_ANON_KEY`: Already configured
 
@@ -103,16 +157,19 @@ For all deployment methods, ensure these are set:
 If you want automatic Supabase migrations:
 
 **Secrets Required:**
+
 - `SUPABASE_ACCESS_TOKEN`: Personal access token from Supabase
 - `SUPABASE_PROJECT_REF`: Your Supabase project reference ID
 - `SUPABASE_DB_PASSWORD`: Database password
 
 **To get SUPABASE_ACCESS_TOKEN:**
+
 1. Go to https://supabase.com/dashboard/account/tokens
 2. Generate a new access token
 3. Copy and add to GitHub Secrets
 
 **To get SUPABASE_PROJECT_REF:**
+
 1. Go to your Supabase project settings
 2. Find "Reference ID" in project settings
 3. Copy and add to GitHub Secrets
@@ -192,9 +249,26 @@ npm run lint
 
 ### Environment Variables Not Available
 
+**For Bolt.host:**
+
+- ⚠️ **Most Common Issue**: Environment variables must be set in **Bolt.host dashboard**, not just in GitHub Secrets
+- Go to Bolt.host project settings → Environment Variables
+- Add either `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` OR `SUPABASE_URL`/`SUPABASE_ANON_KEY`
+- The app supports both naming conventions automatically
+- Trigger a new deployment after adding variables
+
+**For Other Platforms:**
+
 - Ensure secrets are set in GitHub repository settings
 - Check that environment variables are correctly referenced in workflow
 - Verify build output includes environment variables (check build logs)
+
+**Common Error: "Missing Supabase environment variables"**
+
+- This means the variables weren't available during the build process
+- For Bolt.host: Check dashboard environment variables
+- For GitHub Actions: Check that secrets are set in repository settings
+- Verify variable names match exactly (case-sensitive)
 
 ## 📝 Example Workflow Configurations
 
@@ -237,4 +311,3 @@ Use `.github/workflows/deploy-netlify.yml.example` as a template:
 - [GitHub Pages Documentation](https://docs.github.com/en/pages)
 - [AWS S3 Documentation](https://docs.aws.amazon.com/s3/)
 - [Supabase CLI Documentation](https://supabase.com/docs/reference/cli)
-

@@ -35,7 +35,7 @@ jobs:
     needs: [wait-for-ci]
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.url || 'https://fantasykings.com' }}
+      url: ${{ steps.deploy.outputs.url || 'https://fantasykings.bolt.host' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -116,6 +116,10 @@ jobs:
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
 
+      # Note: Bolt.host deployments are typically handled via GitHub integration
+      # Environment variables must be set in Bolt.host dashboard
+      # See DEPLOYMENT.md for instructions
+
       # Deployment summary
       - name: Deployment Summary
         if: always()
@@ -190,19 +194,18 @@ jobs:
         with:
           script: |
             const comment = `## 🚀 Production Deployment
-            
+
             Deployment to production has been triggered for commit ${{ github.sha }}
-            
+
             - **Status**: ${{ job.status }}
             - **Branch**: ${{ github.ref }}
             - **Author**: ${{ github.actor }}
-            
+
             View the deployment: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: comment
             });
-

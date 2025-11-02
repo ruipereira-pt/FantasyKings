@@ -397,14 +397,16 @@ export class PlayerSchedulesApi extends BaseApiService {
 }
 
 // External API calls (Supabase Functions)
+import { supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+
 export class ExternalApi {
   async refreshRankings(): Promise<ApiResponse<void>> {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rankings`,
+        `${supabaseUrl}/functions/v1/fetch-rankings`,
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
         }
       );
@@ -430,10 +432,10 @@ export class ExternalApi {
   async refreshTournaments(): Promise<ApiResponse<void>> {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-tournament-schedules`,
+        `${supabaseUrl}/functions/v1/fetch-tournament-schedules`,
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
         }
       );
@@ -459,10 +461,10 @@ export class ExternalApi {
   async fetchPlayerSchedules(): Promise<ApiResponse<void>> {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-player-schedules`,
+        `${supabaseUrl}/functions/v1/fetch-player-schedules`,
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
         }
       );

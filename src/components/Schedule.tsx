@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
 import { RefreshCw, Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import TeamBuilder from './TeamBuilder';
@@ -123,10 +123,10 @@ export default function Schedule() {
     setRefreshing(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-tournament-schedules`,
+        `${supabaseUrl}/functions/v1/fetch-tournament-schedules`,
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
         }
       );
