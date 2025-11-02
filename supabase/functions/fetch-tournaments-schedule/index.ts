@@ -460,3 +460,37 @@ Deno.serve(async (req: Request) => {
     if (lastProcessedId) {
       await saveSyncState(supabaseAdmin, lastProcessedId);
     }
+
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        processed: processedCount,
+        tournaments_created: tournamentsCreated,
+        players_updated: playersUpdated,
+        last_competition_id: lastProcessedId,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error('Error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+function mapCategoryFromCompetition(competition: Competition): string {
+  const level = competition.level?.toLowerCase() || '';
+  const categoryName = competition.category?.name?.toLowerCase() || '';
+  
+  if (categoryName.includes('grand slam') || level.includes('grand_slam')) return 'grand_slam';
+  if (categoryName.includes('atp 1000') || level.includes('atp_1000')) return 'atp_1000';
+  if (categoryName.includes('atp 500') || level.includes('atp_500')) return 'atp_500';
+  if (categoryName.includes('atp 250') || level.includes('atp_250')) return 'atp_250';
+  if (categoryName.includes('challenger') || level.includes('challenger')) return 'challenger';
+  if (categoryName.includes('finals') || level.includes('finals')) return 'finals';
+  
+  return 'atp_250'; // Default
+}
