@@ -146,10 +146,10 @@ export default function TournamentAssociation({ selectedCompetition: _selectedCo
         updates.join_deadline = deadlineDate.toISOString();
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase
         .from('competitions')
-        .update(updates)
-        .eq('id', selectedComp.id);
+        .update(updates as any)
+        .eq('id', selectedComp.id) as any);
 
       if (error) throw error;
 
