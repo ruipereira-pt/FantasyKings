@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { players as fallbackPlayerData } from "./players-data.ts";
-import { createSportradarService } from "./sportradar-service.ts";
+// Import from _shared using dynamic import
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,7 +46,9 @@ async function fetchATPRankings(): Promise<PlayerData[]> {
 
 async function fetchSportradarRankings(): Promise<PlayerData[]> {
   try {
-    const sportradarService = createSportradarService();
+    // Dynamic import from _shared to avoid cross-function import issues
+    const serviceModule = await import('../_shared/sportradar-service.ts');
+    const sportradarService = serviceModule.createSportradarService();
     if (!sportradarService) {
       console.log('Sportradar service not available, skipping...');
       return [];

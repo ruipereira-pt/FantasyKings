@@ -1,0 +1,6 @@
+# Bolt.host ignore file - files that should not be deployed as edge functions
+.gitignore
+deno.json
+deno-types.d.ts
+# _shared is a shared utilities folder, not a deployable function
+_shared/

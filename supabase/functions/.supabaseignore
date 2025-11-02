@@ -1,0 +1,7 @@
+# Ignore files that are not edge functions
+.gitignore
+deno.json
+deno-types.d.ts
+_shared/
+
+# These are shared utilities, not deployable functions
