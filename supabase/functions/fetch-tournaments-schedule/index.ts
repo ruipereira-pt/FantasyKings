@@ -183,13 +183,29 @@ Deno.serve(async (req: Request) => {
         const seasonsData = await seasonsResponse.json();
         await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
 
-        if (!seasonsData.seasons || !Array.isArray(seasonsData.seasons)) {
-          console.log(`No seasons found for ${competition.name}`);
+        // Debug: Log the response structure
+        console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
+        
+        // The API might return seasons directly as an array, or in a 'seasons' property
+        let seasonsArray: Season[] = [];
+        if (Array.isArray(seasonsData)) {
+          seasonsArray = seasonsData;
+        } else if (seasonsData.seasons && Array.isArray(seasonsData.seasons)) {
+          seasonsArray = seasonsData.seasons;
+        } else if (seasonsData.data && Array.isArray(seasonsData.data)) {
+          seasonsArray = seasonsData.data;
+        }
+
+        if (seasonsArray.length === 0) {
+          console.log(`No seasons found for ${competition.name}. Response keys: ${Object.keys(seasonsData).join(', ')}`);
+          console.log(`Full response sample: ${JSON.stringify(seasonsData).substring(0, 500)}`);
           continue;
         }
 
+        console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
+
         // Filter seasons for years 2025 and 2026
-        const targetSeasons = seasonsData.seasons.filter((s: Season) => 
+        const targetSeasons = seasonsArray.filter((s: Season) => 
           s.year === 2025 || s.year === 2026
         );
 
@@ -253,62 +269,18 @@ Deno.serve(async (req: Request) => {
               .single();
 
             if (tournamentError) {
-              console.error(`Error upserting tournament:`, tournamentError);
+              console.error(`Error upserting tournament for ${competition.name}/${season.name}:`, tournamentError);
+              console.error(`Tournament data:`, JSON.stringify(tournamentData).substring(0, 300));
               continue;
             }
 
-            if (tournament) {
-              tournamentsCreated++;
-              console.log(`    ✓ Tournament created/updated: ${tournament.name}`);
+            if (!tournament) {
+              console.error(`Tournament upsert returned no data for ${competition.name}/${season.name}`);
+              continue;
             }
 
-            // Step 4: Update player schedules from stages (qualification and main draw)
-            if (seasonInfo.stages && Array.isArray(seasonInfo.stages)) {
-              for (const stage of seasonInfo.stages) {
-                const stageType = stage.type?.toLowerCase() || '';
-                const isQualification = stageType.includes('qualification') || stageType.includes('qualifying');
-                const isMainDraw = stageType.includes('main') || stageType.includes('singles');
-                
-                if (!isQualification && !isMainDraw) continue;
-
-                const status = isQualification ? 'qualifying' : 'confirmed';
-                
-                if (stage.competitors && Array.isArray(stage.competitors)) {
-                  for (const competitorEntry of stage.competitors) {
-                    const competitor = competitorEntry.competitor;
-                    if (!competitor || !competitor.id || !competitor.name) continue;
-
-                    try {
-                      // Find or create player
-                      const { data: existingPlayer } = await supabaseAdmin
-                        .from('players')
-                        .select('id')
-                        .eq('sportradar_competitor_id', competitor.id)
-                        .maybeSingle();
-
-                      let playerId: string;
-                      
-                      if (existingPlayer) {
-                        playerId = existingPlayer.id;
-                      } else {
-                        // Create player if doesn't exist
-                        const { data: newPlayer, error: playerError } = await supabaseAdmin
-                          .from('players')
-                          .insert({
-                            name: competitor.name,
-                            country: competitor.country_code || null,
-                            sportradar_competitor_id: competitor.id,
-                            ranking: null,
-                            live_ranking: null,
-                            points: 0,
-                            price: 2, // Default price
-                          })
-                          .select()
-                          .single();
-
-                        if (playerError) {
-                          console.error(`Error creating player ${competitor.name}:`, playerError);
-                          continue;
+            tournamentsCreated++;
+            console.log(`    ✓ Tournament created/updated: ${tournament.name} (ID: ${tournament.id})`);
                         }
                         playerId = newPlayer.id;
                       }
