@@ -95,11 +95,10 @@ export default function TournamentPlayerManagement() {
   async function updatePlayerStatus(scheduleId: string, newStatus: string) {
     setSaving(true);
     try {
-      // @ts-expect-error - Supabase type inference issue
-      const { error } = await (supabase
+      const { error } = await ((supabase
         .from('player_schedules')
         .update({ status: newStatus as any } as any)
-        .eq('id', scheduleId) as any);
+        .eq('id', scheduleId)) as any);
 
       if (error) {
         console.error('Update error details:', error);

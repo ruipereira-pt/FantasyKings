@@ -220,10 +220,9 @@ export default function TeamBuilder({ competition, onClose, existingTeam, readOn
           player_id: player.id,
         }));
 
-        // @ts-expect-error - Supabase type inference issue
-        const { error: playersError } = await supabase
+        const { error: playersError } = await (supabase
           .from('team_players')
-          .insert(teamPlayers as any);
+          .insert(teamPlayers as any) as any);
 
         if (playersError) throw playersError;
 
