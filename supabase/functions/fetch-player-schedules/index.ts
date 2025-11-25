@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
       throw playersError;
     }
 
-    const results = [];
+    const results: Array<{ player: string; schedules: Array<{ tournament: string; status: string }> }> = [];
     let successCount = 0;
     let failCount = 0;
 
