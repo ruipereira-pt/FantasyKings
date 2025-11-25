@@ -201,14 +201,19 @@ Deno.serve(async (req: Request) => {
         processed: processedCount,
         tournaments_created: tournamentsCreated,
         players_updated: playersUpdated,
-        ,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    // Log detailed error server-side for debugging
     console.error('Error:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
+    
+    // Return generic error message to client
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      JSON.stringify({ error: 'An internal server error occurred' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

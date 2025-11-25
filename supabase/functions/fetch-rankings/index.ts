@@ -561,28 +561,24 @@ Deno.serve(async (req: Request) => {
 
     // Also create a map by last name + country for fuzzy matching
     const existingPlayersByLastName = new Map<string, any>();
-    if (allExistingPlayers) {
-      for (const p of allExistingPlayers) {
-        const matchKey = createMatchKey(p.name, p.country || 'UNK');
-        // Keep first match found (should be unique anyway)
-        if (!existingPlayersMap.has(matchKey)) {
-          existingPlayersMap.set(matchKey, p);
-        }
-      }
     
-    if (allExistingPlayers) {
-      for (const p of allExistingPlayers) {
-        const lastName = extractLastName(p.name);
-        const lastNameKey = `${lastName}|${p.country || 'UNK'}`.toUpperCase();
-        // Keep first match found
-        if (!existingPlayersByLastName.has(lastNameKey)) {
-          existingPlayersByLastName.set(lastNameKey, p);
-        }
+    // Process all existing players to build lookup maps
+    for (const p of allExistingPlayers || []) {
+      const matchKey = createMatchKey(p.name, p.country || 'UNK');
+      // Keep first match found (should be unique anyway)
+      if (!existingPlayersMap.has(matchKey)) {
+        existingPlayersMap.set(matchKey, p);
+      }
+      
+      const lastName = extractLastName(p.name);
+      const lastNameKey = `${lastName}|${p.country || 'UNK'}`.toUpperCase();
+      // Keep first match found
+      if (!existingPlayersByLastName.has(lastNameKey)) {
+        existingPlayersByLastName.set(lastNameKey, p);
       }
     }
-
-      console.log(`Loaded ${allExistingPlayers.length} existing players for matching`);
-    }
+    
+    console.log(`Loaded ${(allExistingPlayers || []).length} existing players for matching`);
 
     let insertedCount = 0;
     let updatedCount = 0;
@@ -751,9 +747,15 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error: unknown) {
+    // Log detailed error server-side for debugging
     console.error("Error fetching rankings:", error);
+    if (error instanceof Error) {
+      console.error("Error stack:", error.stack);
+    }
+    
+    // Return generic error message to client
     return new Response(
-      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)) || 'Unknown error occurred' }),
+      JSON.stringify({ error: 'An internal server error occurred' }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
