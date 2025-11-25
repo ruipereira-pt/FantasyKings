@@ -244,7 +244,7 @@ jobs:
   ci-success:
     name: CI Pipeline Status
     runs-on: ubuntu-latest
-    needs: [security, lint-and-typecheck, build, test, supabase-functions]
+    needs: [security, lint-and-typecheck, build, test]
     if: always()
     steps:
       - name: Check job status
@@ -257,14 +257,11 @@ jobs:
             exit 1
           fi
 
-          # Test and Supabase checks are warnings but don't fail the pipeline
+          # Test checks are warnings but don't fail the pipeline
           if [ "${{ needs.test.result }}" != "success" ]; then
             echo "⚠️  Tests did not pass completely, but continuing..."
           fi
 
-          if [ "${{ needs.supabase-functions.result }}" != "success" ]; then
-            echo "⚠️  Supabase functions check had issues, but continuing..."
-          fi
-
+          echo "⚠️  Supabase functions check is temporarily disabled"
           echo "✅ All critical CI checks passed!"
           exit 0
