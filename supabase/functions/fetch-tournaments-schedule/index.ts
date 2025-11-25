@@ -183,7 +183,6 @@ Deno.serve(async (req: Request) => {
             processed: processedCount,
             tournaments_created: tournamentsCreated,
             players_updated: playersUpdated,
-            ,
             has_more: true,
             partial: true
           }),
