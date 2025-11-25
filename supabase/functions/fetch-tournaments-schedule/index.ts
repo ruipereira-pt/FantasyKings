@@ -143,6 +143,7 @@ Deno.serve(async (req: Request) => {
                       const scheduleQuery = supabaseAdmin
                         .from('player_schedules')
                         .upsert(
+                        {
                           player_id: playerId,
                           tournament_id: tournament.id,
                           status: status as any,
