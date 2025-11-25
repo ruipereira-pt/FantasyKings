@@ -31,6 +31,8 @@ export default function CompetitionSetup({ onCompetitionChange }: CompetitionSet
     fetchCompetitions();
   }, [fetchCompetitions]);
 
+  // Update form fields when competition changes
+  // Intentional: we need to update form fields synchronously when competition changes
   useEffect(() => {
     if (selectedCompetition) {
       if (selectedCompetition.join_deadline) {
@@ -45,34 +47,46 @@ export default function CompetitionSetup({ onCompetitionChange }: CompetitionSet
           const hours = String(date.getHours()).padStart(2, '0');
           const minutes = String(date.getMinutes()).padStart(2, '0');
           const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- Intentional: update form field when competition changes
           setDeadline(localDateTime);
         } else {
+           
           setDeadline('');
         }
       } else {
+         
         setDeadline('');
       }
 
       // Set start and end dates
       if (selectedCompetition.start_date) {
+         
         setStartDate(selectedCompetition.start_date);
       } else {
+         
         setStartDate('');
       }
 
       if (selectedCompetition.end_date) {
+         
         setEndDate(selectedCompetition.end_date);
       } else {
+         
         setEndDate('');
       }
 
+       
       setStatus(selectedCompetition.status || 'upcoming');
+       
       setNumberOfPlayers(selectedCompetition.number_of_players || '');
+       
       setFirstRound(selectedCompetition.first_round || '');
       
       if (selectedCompetition.points_per_round && typeof selectedCompetition.points_per_round === 'object') {
+         
         setPointsPerRound(selectedCompetition.points_per_round as Record<string, number>);
       } else {
+         
         setPointsPerRound({});
       }
     }
@@ -93,7 +107,7 @@ export default function CompetitionSetup({ onCompetitionChange }: CompetitionSet
       return;
     }
 
-    const updates: any = {
+    const updates: Record<string, unknown> = {
       start_date: startDate,
       end_date: endDate,
       status: status,

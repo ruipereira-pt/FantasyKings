@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, supabaseUrl, supabaseAnonKey } from '../lib/supabase';
+import { supabase, supabaseUrl } from '../lib/supabase';
 import { RefreshCw, Calendar, MapPin, Trophy, ArrowRight } from 'lucide-react';
 import type { Database } from '../lib/database.types';
 import TeamBuilder from './TeamBuilder';
@@ -58,6 +58,8 @@ export default function Schedule() {
   const [competitionsMap, setCompetitionsMap] = useState<Record<string, CompetitionInfo>>({});
   const [selectedCompetition, setSelectedCompetition] = useState<CompetitionInfo | null>(null);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [syncYear, setSyncYear] = useState<number>(new Date().getFullYear());
+  const [showYearInput, setShowYearInput] = useState(false);
 
   useEffect(() => {
     fetchTournaments();
@@ -120,27 +122,49 @@ export default function Schedule() {
   }
 
   async function refreshSchedule() {
+    if (showYearInput && (!syncYear || syncYear < 2020 || syncYear > 2030)) {
+      alert('Please enter a valid year (2020-2030)');
+      return;
+    }
+
     setRefreshing(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        alert('You must be logged in to sync tournaments');
+        return;
+      }
+
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/fetch-tournament-schedules`,
+        `${supabaseUrl}/functions/v1/sync-tournaments`,
         {
+          method: 'POST',
           headers: {
-            Authorization: `Bearer ${supabaseAnonKey}`,
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ year: syncYear }),
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to refresh schedule');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to sync tournaments');
       }
 
+      const result = await response.json();
       await fetchTournaments();
-    } catch (error) {
+      
+      if (result.synced > 0) {
+        alert(`Successfully synced ${result.synced} tournaments for ${syncYear}!\nInserted: ${result.inserted}\nUpdated: ${result.updated}`);
+      }
+    } catch (error: any) {
       console.error('Error refreshing schedule:', error);
-      alert('Failed to refresh schedule. Please try again.');
+      alert(`Failed to refresh schedule: ${error.message || 'Please try again.'}`);
     } finally {
       setRefreshing(false);
+      setShowYearInput(false);
     }
   }
 
@@ -166,14 +190,42 @@ export default function Schedule() {
           </h2>
           <p className="text-sm sm:text-base text-slate-400 mt-1">ATP and Challenger tour schedules</p>
         </div>
-        <button
-          onClick={refreshSchedule}
-          disabled={refreshing}
-          className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-        >
-          <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {showYearInput && (
+            <input
+              type="number"
+              min="2020"
+              max="2030"
+              value={syncYear}
+              onChange={(e) => setSyncYear(parseInt(e.target.value) || new Date().getFullYear())}
+              className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm sm:text-base"
+              placeholder="Year (e.g., 2025)"
+              autoFocus
+            />
+          )}
+          <button
+            onClick={() => {
+              if (!showYearInput) {
+                setShowYearInput(true);
+              } else {
+                refreshSchedule();
+              }
+            }}
+            disabled={refreshing}
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+          >
+            <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>{refreshing ? 'Syncing...' : showYearInput ? `Sync ${syncYear}` : 'Sync Tournaments'}</span>
+          </button>
+          {showYearInput && (
+            <button
+              onClick={() => setShowYearInput(false)}
+              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors text-sm sm:text-base"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 w-full">
