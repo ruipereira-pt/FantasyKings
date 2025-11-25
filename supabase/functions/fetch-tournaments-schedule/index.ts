@@ -140,19 +140,21 @@ Deno.serve(async (req: Request) => {
                       }
 
                       // Upsert player schedule
-                      const { error: scheduleError } = await supabaseAdmin
-                        .from('player_schedules')
-                        .upsert(
-                          {
-                            player_id: playerId,
-                            tournament_id: tournament.id,
-                            status: status as any,
-                            entry_type: isQualification ? 'qualifying' : 'main_draw',
-                          },
-                          {
-                            onConflict: 'player_id,tournament_id'
-                          }
-                        );
+                      const { error: scheduleError } = await (
+                        supabaseAdmin
+                          .from('player_schedules')
+                          .upsert(
+                            {
+                              player_id: playerId,
+                              tournament_id: tournament.id,
+                              status: status as any,
+                              entry_type: isQualification ? 'qualifying' : 'main_draw',
+                            },
+                            {
+                              onConflict: 'player_id,tournament_id'
+                            }
+                          )
+                      );
 
                       if (!scheduleError) {
                         playersUpdated++;
