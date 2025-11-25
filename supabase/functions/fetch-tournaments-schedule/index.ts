@@ -140,7 +140,7 @@ Deno.serve(async (req: Request) => {
                       }
 
                       // Upsert player schedule
-                      const { error: scheduleError } = await supabaseAdmin
+                      const scheduleQuery = supabaseAdmin
                         .from('player_schedules')
                         .upsert(
                           {
@@ -153,6 +153,7 @@ Deno.serve(async (req: Request) => {
                             onConflict: 'player_id,tournament_id'
                           }
                         );
+                      const { error: scheduleError } = await scheduleQuery;
 
                       if (!scheduleError) {
                         playersUpdated++;
