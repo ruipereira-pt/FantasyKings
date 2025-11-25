@@ -112,63 +112,55 @@ Deno.serve(async (req: Request) => {
 
     
 
-    // TEMPORARY FIX: Commented out orphaned code block that references undefined variables
-    // TODO: Add proper loop structures to iterate over competitions/seasons/competitors
-    /*
-    //                       let playerId: string;
-    //                       
-    //                       if (existingPlayer) {
-    //                         playerId = existingPlayer.id;
-    //                       } else {
-    //                         // Create player if doesn't exist
-    //                         const { data: newPlayer, error: playerError } = await supabaseAdmin
-    //                           .from('players')
-    //                           .insert({
-    //                             name: competitor.name,
-    //                             country: competitor.country_code || null,
-    //                             sportradar_competitor_id: competitor.id,
-    //                             ranking: null,
-    //                             live_ranking: null,
-    //                             points: 0,
-    //                             price: 2, // Default price
-    //                           })
-    //                           .select()
-    //                           .single();
-    // 
-    //                         if (playerError) {
-    //                           console.error(`Error creating player ${competitor.name}:`, playerError);
-    //                           continue;
-    //                         }
-    //                         playerId = newPlayer.id;
-    //                       }
-    // 
-    //                       // Upsert player schedule
-    //                       const scheduleQuery = supabaseAdmin
-    //                         .from('player_schedules')
-    //                         .upsert(
-    //                         {
-    //                           player_id: playerId,
-    //                           tournament_id: tournament.id,
-    //                           status: status as any,
-    //                           entry_type: isQualification ? 'qualifying' : 'main_draw',
-    //                         },
-    //                         {
-    //                           onConflict: 'player_id,tournament_id'
-    //                         }
-    //                       );
-    //                       const { error: scheduleError } = await scheduleQuery;
-    // 
-    //                       if (!scheduleError) {
-    //                         playersUpdated++;
-    //                       }
-    //                     } catch (error) {
-    //                       console.error(`Error processing competitor ${competitor.name}:`, error);
-    //                     }
-    //                   }
-    */
-    //                 }
-    //               }
-    //             }
+                      let playerId: string;
+                      
+                      if (existingPlayer) {
+                        playerId = existingPlayer.id;
+                      } else {
+                        // Create player if doesn't exist
+                        const { data: newPlayer, error: playerError } = await supabaseAdmin
+                          .from('players')
+                          .insert({
+                            name: competitor.name,
+                            country: competitor.country_code || null,
+                            sportradar_competitor_id: competitor.id,
+                            ranking: null,
+                            live_ranking: null,
+                            points: 0,
+                            price: 2, // Default price
+                          })
+                          .select()
+                          .single();
+
+                        if (playerError) {
+                          console.error(`Error creating player ${competitor.name}:`, playerError);
+                          continue;
+                        }
+                        playerId = newPlayer.id;
+                      }
+
+                      // Upsert player schedule
+                      const { error: scheduleError } = await supabaseAdmin
+                        .from('player_schedules')
+                        .upsert({
+                          player_id: playerId,
+                          tournament_id: tournament.id,
+                          status: status as any,
+                          entry_type: isQualification ? 'qualifying' : 'main_draw',
+                        }, {
+                          onConflict: 'player_id,tournament_id'
+                        });
+
+                      if (!scheduleError) {
+                        playersUpdated++;
+                      }
+                    } catch (error) {
+                      console.error(`Error processing competitor ${competitor.name}:`, error);
+                    }
+                  }
+                }
+              }
+            }
 
             // lastProcessedId will be set after all seasons are processed
           } catch (error) {
