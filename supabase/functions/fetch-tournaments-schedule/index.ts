@@ -150,7 +150,7 @@ Deno.serve(async (req: Request) => {
                             entry_type: isQualification ? 'qualifying' : 'main_draw',
                           },
                           {
-                            onConflict: 'player_id,tournament_id',
+                            onConflict: 'player_id,tournament_id'
                           }
                         );
 
