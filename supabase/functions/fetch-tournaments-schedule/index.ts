@@ -166,9 +166,9 @@ Deno.serve(async (req: Request) => {
     //                     }
     //                   }
     */
-                }
-              }
-            }
+    //                 }
+    //               }
+    //             }
 
             // lastProcessedId will be set after all seasons are processed
           } catch (error) {
