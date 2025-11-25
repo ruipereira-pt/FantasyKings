@@ -130,7 +130,10 @@ jobs:
   supabase-functions:
     name: Check & Deploy Supabase Functions
     runs-on: ubuntu-latest
+    if: false # Temporarily disabled - set to true to re-enable
     steps:
+      - name: Skip deployment (temporarily disabled)
+        run: echo "⚠️  Edge functions deployment is temporarily disabled - skipping deployment steps"
       - name: Checkout code
         uses: actions/checkout@v4
 
