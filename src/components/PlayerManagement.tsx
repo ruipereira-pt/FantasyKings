@@ -190,7 +190,7 @@ export default function PlayerManagement() {
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Successfully updated ${result.count} player rankings from ATP sources!`);
+        alert(`Successfully synced ${result.inserted || 0} new and updated ${result.updated || 0} player rankings from ATP sources!`);
         // Refresh the players list
         await fetchData();
       } else {

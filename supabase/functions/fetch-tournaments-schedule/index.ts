@@ -21,52 +21,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-// Helper function to save sync state
-async function saveSyncState(
-  supabaseAdmin: any,
-  lastProcessedId: string | null
-): Promise<void> {
-  if (!lastProcessedId) {
-    console.log('[saveSyncState] Skipping save - lastProcessedId is null');
-    return;
-  }
-  
-  console.log(`[saveSyncState] Saving sync state for competition ID: ${lastProcessedId}`);
-  
-  try {
-    const { data: existingState } = await supabaseAdmin
-      .from('sportradar_sync_state')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
-
-    if (existingState) {
-      console.log(`[saveSyncState] Updating existing sync state (id: ${existingState.id})`);
-      await supabaseAdmin
-        .from('sportradar_sync_state')
-        .update({
-          last_competition_id: lastProcessedId,
-          last_sync_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingState.id);
-      console.log(`[saveSyncState] ✓ Successfully updated sync state to competition ID: ${lastProcessedId}`);
-    } else {
-      console.log(`[saveSyncState] Creating new sync state record`);
-      await supabaseAdmin
-        .from('sportradar_sync_state')
-        .insert({
-          last_competition_id: lastProcessedId,
-          last_sync_at: new Date().toISOString(),
-        });
-      console.log(`[saveSyncState] ✓ Successfully created sync state with competition ID: ${lastProcessedId}`);
-    }
-  } catch (error) {
-    console.error('Error saving sync state:', error);
-  }
-}
-
-
 interface Competition {
   id: string;
   name: string;
@@ -111,7 +65,6 @@ Deno.serve(async (req: Request) => {
   const startTime = Date.now();
   const MAX_EXECUTION_TIME = 50 * 1000; // 50 seconds (conservative)
   const MAX_COMPETITIONS = 1; // Process exactly 1 competition per invocation to avoid timeouts
-  const BATCH_SIZE = 10; // Save sync state every N competitions
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -157,264 +110,7 @@ Deno.serve(async (req: Request) => {
       saveToCache = async () => {};
     }
 
-    // Get last fetched competition ID from sync state
-    const { data: syncState } = await supabaseAdmin
-      .from('sportradar_sync_state')
-      .select('last_competition_id')
-      .limit(1)
-      .single();
-
-    const lastCompetitionId = syncState?.last_competition_id || null;
-    console.log(`Last fetched competition ID: ${lastCompetitionId || 'none'}`);
-
-    // Step 1: GET Competitions (we'll filter in code for type="singles", gender="men")
-    console.log('Step 1: Fetching competitions...');
-    const competitionsEndpoint = '/competitions.json';
-    const competitionsResponse = await fetch(
-      `https://api.sportradar.com/tennis/trial/v3/en${competitionsEndpoint}?api_key=${apiKey}`
-    );
-
-    if (!competitionsResponse.ok) {
-      if (competitionsResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Rate limit exceeded. Please try again later.',
-            status: competitionsResponse.status
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`Failed to fetch competitions: ${competitionsResponse.status}`);
-    }
-
-    const competitionsData = await competitionsResponse.json();
     
-    // Save raw response
-    await saveToCache(competitionsEndpoint, competitionsData, supabaseAdmin);
-    console.log(`Found ${competitionsData.competitions?.length || 0} competitions`);
-
-    if (!competitionsData.competitions || !Array.isArray(competitionsData.competitions)) {
-      throw new Error('No competitions found in API response');
-    }
-
-    // Filter competitions by type="singles" and gender="men"
-    const filteredCompetitions = competitionsData.competitions.filter((comp: Competition) => {
-      const isSingles = !comp.name?.toLowerCase().includes('doubles');
-      const isMen = comp.gender?.toLowerCase() === 'men' || comp.gender?.toLowerCase() === 'male';
-      return isSingles && isMen;
-    });
-
-    console.log(`Filtered to ${filteredCompetitions.length} singles men's competitions`);
-
-    // Filter to only process competitions after the last one (if exists)
-    let competitionsToProcess = filteredCompetitions;
-    if (lastCompetitionId) {
-      const lastIndex = filteredCompetitions.findIndex((c: Competition) => c.id === lastCompetitionId);
-      if (lastIndex >= 0) {
-        competitionsToProcess = filteredCompetitions.slice(lastIndex + 1);
-          console.log(`Processing ${competitionsToProcess.length} new competitions (skipped ${lastIndex + 1} already processed)`);
-      }
-    }
-    
-    // Limit to MAX_COMPETITIONS per invocation to prevent timeout (AFTER filtering by lastCompetitionId)
-    if (competitionsToProcess.length > MAX_COMPETITIONS) {
-      competitionsToProcess = competitionsToProcess.slice(0, MAX_COMPETITIONS);
-      console.log(`Processing exactly 1 competition per invocation to avoid timeouts. Function will return and new instance will process next competition.`);
-    }
-
-    let processedCount = 0;
-    let tournamentsCreated = 0;
-    let playersUpdated = 0;
-    let lastProcessedId: string | null = null;
-
-    // Step 2: For each competition, GET Competition Seasons (year=2025, 2026)
-    for (const competition of competitionsToProcess) {
-        // Check if we're approaching timeout
-        const elapsed = Date.now() - startTime;
-        if (elapsed > MAX_EXECUTION_TIME) {
-          console.log(`Approaching timeout, saving progress and returning...`);
-          await saveSyncState(supabaseAdmin, lastProcessedId);
-          return new Response(
-            JSON.stringify({
-              success: true,
-              message: `Partial completion - processed ${processedCount} competitions before timeout. Run again to continue.`,
-              processed: processedCount,
-              tournaments_created: tournamentsCreated,
-              players_updated: playersUpdated,
-              last_competition_id: lastProcessedId,
-              partial: true
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      try {
-          console.log(`Processing competition: ${competition.name} (${competition.id})`);
-        
-        // Add rate limiting delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // GET Competition Seasons
-        const seasonsEndpoint = `/competitions/${competition.id}/seasons.json`;
-        const seasonsResponse = await fetch(
-          `https://api.sportradar.com/tennis/trial/v3/en${seasonsEndpoint}?api_key=${apiKey}&locale=en`
-        );
-
-        if (!seasonsResponse.ok) {
-          if (seasonsResponse.status === 429) {
-            console.log(`Rate limited, waiting longer...`);
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            continue;
-          }
-          console.log(`Skipping ${competition.name}: Failed to fetch seasons (${seasonsResponse.status})`);
-          continue;
-        }
-
-        const seasonsData = await seasonsResponse.json();
-        await saveToCache(seasonsEndpoint, seasonsData, supabaseAdmin);
-
-        // Debug: Log the response structure
-          console.log(`Seasons response structure for ${competition.name}:`, JSON.stringify(Object.keys(seasonsData)).substring(0, 200));
-        
-        // The API might return seasons directly as an array, or in a 'seasons' property
-        let seasonsArray: Season[] = [];
-        if (Array.isArray(seasonsData)) {
-          seasonsArray = seasonsData;
-        } else if (seasonsData.seasons && Array.isArray(seasonsData.seasons)) {
-          seasonsArray = seasonsData.seasons;
-        } else if (seasonsData.data && Array.isArray(seasonsData.data)) {
-          seasonsArray = seasonsData.data;
-        }
-
-        if (seasonsArray.length === 0) {
-          console.log(`No seasons found for ${competition.name}. Response keys: ${Object.keys(seasonsData).join(', ')}`);
-          console.log(`Full response sample: ${JSON.stringify(seasonsData).substring(0, 500)}`);
-          continue;
-        }
-
-          console.log(`Found ${seasonsArray.length} seasons for ${competition.name}`);
-
-        // Filter seasons for years 2025 and 2026
-        const targetSeasons = seasonsArray.filter((s: Season) => 
-          s.year === 2025 || s.year === 2026
-        );
-
-        if (targetSeasons.length === 0) {
-          console.log(`No seasons for 2025/2026 found for ${competition.name}`);
-          continue;
-        }
-
-        // Step 3: For each season, GET Season Info
-        for (const season of targetSeasons) {
-          // Check timeout before processing each season
-          const elapsedSeason = Date.now() - startTime;
-          if (elapsedSeason > MAX_EXECUTION_TIME) {
-            console.log(`Approaching timeout during season processing, saving progress and returning...`);
-            await saveSyncState(supabaseAdmin, competition.id);
-            return new Response(
-              JSON.stringify({
-                success: true,
-                message: `Partial completion - processed ${processedCount} competitions and ${tournamentsCreated} tournaments before timeout. Run again to continue.`,
-                processed: processedCount,
-                tournaments_created: tournamentsCreated,
-                players_updated: playersUpdated,
-                last_competition_id: competition.id,
-                partial: true
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          try {
-          console.log(`  Processing season: ${season.name} (${season.id}, ${season.year})`);
-            
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const locale = "en";
-            const format = "json";
-            const seasonInfoEndpoint = `/${locale}/seasons/${season.id}/info.${format}`;
-            const seasonInfoResponse = await fetch(
-              `https://api.sportradar.com/tennis/trial/v3${seasonInfoEndpoint}?api_key=${apiKey}`
-            );
-
-            if (!seasonInfoResponse.ok) {
-              if (seasonInfoResponse.status === 429) {
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                continue;
-              }
-              console.log(`    Skipping season ${season.id}: Failed to fetch info (${seasonInfoResponse.status})`);
-              continue;
-            }
-
-            const seasonInfo: SeasonInfo = await seasonInfoResponse.json();
-            await saveToCache(seasonInfoEndpoint, seasonInfo, supabaseAdmin);
-
-            // Extract venue from complex
-            const venue = seasonInfo.complex 
-              ? `${seasonInfo.complex.name}${seasonInfo.complex.city ? `, ${seasonInfo.complex.city.name}` : ''}`
-              : null;
-
-            // Store/update tournament record
-            const tournamentData = {
-              name: seasonInfo.name || competition.name,
-              category: mapCategoryFromCompetition(competition),
-              surface: seasonInfo.surface?.toLowerCase() || null,
-              location: venue,
-              start_date: seasonInfo.start_date,
-              end_date: seasonInfo.end_date,
-              prize_money: seasonInfo.prize_money || null,
-              sportradar_competition_id: competition.id,
-              sportradar_season_id: season.id,
-              year: season.year,
-              status: new Date(seasonInfo.end_date) < new Date() ? 'completed' : 
-                     new Date(seasonInfo.start_date) <= new Date() ? 'ongoing' : 'upcoming',
-            };
-
-            const { data: tournament, error: tournamentError } = await supabaseAdmin
-              .from('tournaments')
-              .upsert(tournamentData, {
-                onConflict: 'sportradar_season_id',
-                ignoreDuplicates: false
-              })
-              .select()
-              .single();
-
-            if (tournamentError) {
-              console.error(`Error upserting tournament for ${competition.name}/${season.name}:`, tournamentError);
-              console.error(`Tournament data:`, JSON.stringify(tournamentData).substring(0, 300));
-              continue;
-            }
-
-            if (!tournament) {
-              console.error(`Tournament upsert returned no data for ${competition.name}/${season.name}`);
-              continue;
-            }
-
-            tournamentsCreated++;
-            console.log(`    ✓ Tournament created/updated: ${tournament.name} (ID: ${tournament.id})`);
-
-
-            // Step 4: Update player schedules from stages (qualification and main draw)
-            if (seasonInfo.stages && Array.isArray(seasonInfo.stages)) {
-              for (const stage of seasonInfo.stages) {
-                const stageType = stage.type?.toLowerCase() || '';
-                const isQualification = stageType.includes('qualification') || stageType.includes('qualifying');
-                const isMainDraw = stageType.includes('main') || stageType.includes('singles');
-                
-                if (!isQualification && !isMainDraw) continue;
-
-                const status = isQualification ? 'qualifying' : 'confirmed';
-                
-                if (stage.competitors && Array.isArray(stage.competitors)) {
-                  for (const competitorEntry of stage.competitors) {
-                    const competitor = competitorEntry.competitor;
-                    if (!competitor || !competitor.id || !competitor.name) continue;
-
-                    try {
-                      // Find or create player
-                      const { data: existingPlayer } = await supabaseAdmin
-                        .from('players')
-                        .select('id')
-                        .eq('sportradar_competitor_id', competitor.id)
-                        .maybeSingle();
 
                       let playerId: string;
                       
@@ -473,13 +169,10 @@ Deno.serve(async (req: Request) => {
         }
 
         
-        // Competition fully processed - update sync state
         
         // Return after processing 1 competition - next invocation will process the next one
         lastProcessedId = competition.id;
-        console.log(`✓ Competition "${competition.name}" fully processed. All seasons saved to DB. Saving sync state...`);
-        await saveSyncState(supabaseAdmin, lastProcessedId);
-        console.log(`✓ Sync state saved for competition ID: ${competition.id}. Moving to next competition.`);
+        
         processedCount++;
         
         // Return immediately after processing 1 competition - next invocation will handle the next one
@@ -490,7 +183,7 @@ Deno.serve(async (req: Request) => {
             processed: processedCount,
             tournaments_created: tournamentsCreated,
             players_updated: playersUpdated,
-            last_competition_id: lastProcessedId,
+            ,
             has_more: true,
             partial: true
           }),
@@ -503,14 +196,13 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-
     return new Response(
       JSON.stringify({
         success: true,
         processed: processedCount,
         tournaments_created: tournamentsCreated,
         players_updated: playersUpdated,
-        last_competition_id: lastProcessedId,
+        ,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

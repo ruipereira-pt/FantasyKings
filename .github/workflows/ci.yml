@@ -145,6 +145,11 @@ jobs:
           errors=0
           for dir in */; do
             if [ -f "$dir/index.ts" ]; then
+              func_name=$(basename "$dir")
+              # Skip _shared directory
+              if [ "$func_name" = "_shared" ]; then
+                continue
+              fi
               echo "Checking $dir..."
               if ! deno check "$dir/index.ts" 2>&1; then
                 echo "❌ Syntax error in $dir"
