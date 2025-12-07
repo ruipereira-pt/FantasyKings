@@ -1,0 +1,332 @@
+/**
+ * Syncs tournaments from SportsRadar API for a selected year
+ * 
+ * Flow:
+ * 1. GET /competitions - Get all competitions
+ * 2. For each competition, GET /competitions/{id}/seasons - Get seasons
+ * 3. Filter seasons by selected year
+ * 4. For each season, GET /seasons/{season_id}/info - Get season details (XML)
+ * 5. Parse XML and upsert tournament data
+ * 
+ * Method: POST
+ * Body: { year: number }
+ * Authentication: Admin only
+ */
+
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+interface SeasonInfo {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  year: number;
+  competition_id: string;
+  sport_id?: string;
+  category_id?: string;
+  category_name?: string;
+  competition_name?: string;
+  parent_competition_id?: string;
+  gender?: string;
+  prize_currency?: string;
+  prize_money?: number;
+  surface?: string;
+  venue?: string;
+  complex_id?: string;
+  number_of_competitors?: number;
+  number_of_qualified_competitors?: number;
+  number_of_scheduled_matches?: number;
+}
+
+function parseXMLSeasonInfo(xmlText: string): SeasonInfo | null {
+  try {
+    const seasonMatch = xmlText.match(/<season[^>]*id="([^"]*)"[^>]*name="([^"]*)"[^>]*start_date="([^"]*)"[^>]*end_date="([^"]*)"[^>]*year="([^"]*)"[^>]*competition_id="([^"]*)"[^>]*>/);
+    if (!seasonMatch) return null;
+    
+    const season: SeasonInfo = {
+      id: seasonMatch[1],
+      name: seasonMatch[2],
+      start_date: seasonMatch[3],
+      end_date: seasonMatch[4],
+      year: parseInt(seasonMatch[5]),
+      competition_id: seasonMatch[6],
+    };
+    
+    const sportMatch = xmlText.match(/<sport[^>]*id="([^"]*)"[^>]*name="([^"]*)"[^>]*\/>/);
+    if (sportMatch) season.sport_id = sportMatch[1];
+    
+    const categoryMatch = xmlText.match(/<category[^>]*id="([^"]*)"[^>]*name="([^"]*)"[^>]*\/>/);
+    if (categoryMatch) {
+      season.category_id = categoryMatch[1];
+      season.category_name = categoryMatch[2];
+    }
+    
+    const competitionMatch = xmlText.match(/<competition[^>]*id="([^"]*)"[^>]*name="([^"]*)"[^>]*(?:parent_id="([^"]*)")?[^>]*type="([^"]*)"[^>]*gender="([^"]*)"[^>]*\/>/);
+    if (competitionMatch) {
+      season.competition_name = competitionMatch[2];
+      season.parent_competition_id = competitionMatch[3];
+      season.gender = competitionMatch[5];
+    }
+    
+    const infoMatch = xmlText.match(/<info[^>]*(?:prize_currency="([^"]*)")?[^>]*(?:prize_money="([^"]*)")?[^>]*(?:surface="([^"]*)")?[^>]*(?:complex="([^"]*)")?[^>]*(?:complex_id="([^"]*)")?[^>]*(?:number_of_competitors="([^"]*)")?[^>]*(?:number_of_qualified_competitors="([^"]*)")?[^>]*(?:number_of_scheduled_matches="([^"]*)")?[^>]*\/>/);
+    if (infoMatch) {
+      season.prize_currency = infoMatch[1];
+      season.prize_money = infoMatch[2] ? parseInt(infoMatch[2]) : undefined;
+      season.surface = infoMatch[3]?.replace('hardcourt_indoor', 'hard').replace('hardcourt_outdoor', 'hard');
+      season.venue = infoMatch[4];
+      season.complex_id = infoMatch[5];
+      season.number_of_competitors = infoMatch[6] ? parseInt(infoMatch[6]) : undefined;
+      season.number_of_qualified_competitors = infoMatch[7] ? parseInt(infoMatch[7]) : undefined;
+      season.number_of_scheduled_matches = infoMatch[8] ? parseInt(infoMatch[8]) : undefined;
+    }
+    
+    return season;
+  } catch (error) {
+    console.error('Error parsing XML:', error);
+    return null;
+  }
+}
+
+function mapCategory(categoryName: string): string {
+  const categoryMap: Record<string, string> = {
+    'Grand Slam': 'grand_slam',
+    'ATP Masters 1000': 'atp_1000',
+    'ATP 500': 'atp_500',
+    'ATP 250': 'atp_250',
+    'ATP Finals': 'finals',
+    'Challenger': 'challenger',
+  };
+  return categoryMap[categoryName] || 'challenger';
+}
+
+function mapSurface(surface: string): string {
+  if (!surface) return 'hard';
+  const surfaceMap: Record<string, string> = {
+    'hardcourt_indoor': 'hard',
+    'hardcourt_outdoor': 'hard',
+    'hard': 'hard',
+    'clay': 'clay',
+    'grass': 'grass',
+    'carpet': 'carpet',
+  };
+  return surfaceMap[surface.toLowerCase()] || 'hard';
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const adminEmails = ['rui@fk.com', 'admin@fk.com'];
+    if (!adminEmails.includes(user.email || '')) {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const year = body.year || new Date().getFullYear();
+    
+    if (!year || typeof year !== 'number') {
+      return new Response(
+        JSON.stringify({ error: 'Valid year is required' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const apiKey = Deno.env.get('SPORTRADAR_API_KEY');
+    
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'SPORTRADAR_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const baseUrl = 'https://api.sportradar.com/tennis/trial/v3/en';
+    let syncedCount = 0;
+    let updatedCount = 0;
+    let insertedCount = 0;
+    const errors: string[] = [];
+
+    console.log(`Starting tournament sync for year ${year}...`);
+
+    try {
+      const competitionsResponse = await fetch(`${baseUrl}/competitions.json?api_key=${apiKey}`);
+      if (!competitionsResponse.ok) {
+        throw new Error(`Failed to fetch competitions: ${competitionsResponse.status}`);
+      }
+      
+      const competitionsData = await competitionsResponse.json();
+      const competitions = competitionsData.competitions || [];
+      console.log(`Found ${competitions.length} competitions`);
+      
+      for (const competition of competitions) {
+        const competitionId = competition.id;
+        
+        try {
+          const seasonsResponse = await fetch(`${baseUrl}/competitions/${competitionId}/seasons.json?api_key=${apiKey}`);
+          if (!seasonsResponse.ok) {
+            console.warn(`Failed to fetch seasons for competition ${competitionId}: ${seasonsResponse.status}`);
+            continue;
+          }
+          
+          const seasonsData = await seasonsResponse.json();
+          const seasons = seasonsData.seasons || [];
+          const yearSeasons = seasons.filter((s: any) => s.year === year);
+          console.log(`Competition ${competitionId}: Found ${yearSeasons.length} seasons for year ${year}`);
+          
+          for (const season of yearSeasons) {
+            const seasonId = season.id;
+            
+            try {
+              const seasonInfoResponse = await fetch(`${baseUrl}/seasons/${seasonId}/info.xml?api_key=${apiKey}`);
+              if (!seasonInfoResponse.ok) {
+                console.warn(`Failed to fetch season info for ${seasonId}: ${seasonInfoResponse.status}`);
+                continue;
+              }
+              
+              const xmlText = await seasonInfoResponse.text();
+              const seasonInfo = parseXMLSeasonInfo(xmlText);
+              
+              if (!seasonInfo) {
+                console.warn(`Failed to parse season info for ${seasonId}`);
+                continue;
+              }
+              
+              const { data: existingTournament } = await supabaseAdmin
+                .from("tournaments")
+                .select("id")
+                .eq("sportradar_season_id", seasonId)
+                .maybeSingle();
+              
+              const tournamentData: any = {
+                name: seasonInfo.name,
+                category: mapCategory(seasonInfo.category_name || 'Challenger'),
+                surface: mapSurface(seasonInfo.surface || 'hard'),
+                location: seasonInfo.venue || 'TBD',
+                start_date: seasonInfo.start_date,
+                end_date: seasonInfo.end_date,
+                prize_money: seasonInfo.prize_money || null,
+                prize_currency: seasonInfo.prize_currency || null,
+                venue: seasonInfo.venue || null,
+                complex_id: seasonInfo.complex_id || null,
+                number_of_competitors: seasonInfo.number_of_competitors || null,
+                number_of_qualified_competitors: seasonInfo.number_of_qualified_competitors || null,
+                number_of_scheduled_matches: seasonInfo.number_of_scheduled_matches || null,
+                sport_id: seasonInfo.sport_id || null,
+                parent_competition_id: seasonInfo.parent_competition_id || null,
+                gender: seasonInfo.gender || null,
+                sportradar_competition_id: seasonInfo.competition_id,
+                sportradar_season_id: seasonId,
+                year: year,
+                status: new Date(seasonInfo.end_date) < new Date() ? 'completed' : 
+                        new Date(seasonInfo.start_date) <= new Date() ? 'ongoing' : 'upcoming',
+                updated_at: new Date().toISOString(),
+              };
+              
+              if (existingTournament) {
+                const { error } = await supabaseAdmin
+                  .from("tournaments")
+                  .update(tournamentData)
+                  .eq("id", existingTournament.id);
+                
+                if (error) {
+                  errors.push(`Error updating tournament ${seasonInfo.name}: ${error.message}`);
+                } else {
+                  updatedCount++;
+                  console.log(`Updated tournament: ${seasonInfo.name}`);
+                }
+              } else {
+                const { error } = await supabaseAdmin
+                  .from("tournaments")
+                  .insert(tournamentData);
+                
+                if (error) {
+                  errors.push(`Error inserting tournament ${seasonInfo.name}: ${error.message}`);
+                } else {
+                  insertedCount++;
+                  console.log(`Inserted tournament: ${seasonInfo.name}`);
+                }
+              }
+              
+              syncedCount++;
+              
+            } catch (error: any) {
+              const errorMsg = `Error processing season ${seasonId}: ${error.message}`;
+              console.error(errorMsg);
+              errors.push(errorMsg);
+            }
+          }
+          
+        } catch (error: any) {
+          const errorMsg = `Error processing competition ${competitionId}: ${error.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+      
+    } catch (error: any) {
+      return new Response(
+        JSON.stringify({ error: `Failed to sync tournaments: ${error.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        year,
+        synced: syncedCount,
+        inserted: insertedCount,
+        updated: updatedCount,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Successfully synced ${syncedCount} tournaments for year ${year}`,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error syncing tournaments:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});

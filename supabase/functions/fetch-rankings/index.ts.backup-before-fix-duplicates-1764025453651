@@ -1,0 +1,546 @@
+/**
+ * Fetches ATP rankings from ATP Official API or Web Scraper and updates the players table
+ * 
+ * Called by:
+ *   - initializeData.ts
+ *   - api.ts (refreshRankings)
+ *   - PlayerManagement.tsx
+ * 
+ * Method: POST
+ * Authentication: Required (admin only)
+ * 
+ * Environment Variables Required:
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ */
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { load } from "npm:cheerio@1.0.0";
+import { players as fallbackPlayerData } from "./players-data.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+interface PlayerData {
+  ranking: number;
+  name: string;
+  country: string;
+  points: number;
+}
+
+function calculatePrice(ranking: number): number {
+  const basePrice = 20;
+  const maxRank = 200;
+  const calculated = Math.round(
+    basePrice * ((Math.log(maxRank + 1) - Math.log(ranking + 1)) / Math.log(maxRank + 1))
+  );
+  return Math.max(2, calculated);
+}
+
+/**
+ * Normalize player name to prevent duplicates
+ * Examples: "C. Alcaraz" -> "Carlos Alcaraz", "N. Djokovic" -> "Novak Djokovic"
+ * This is a simple implementation - you may need to expand the mapping
+ */
+function normalizePlayerName(name: string): string {
+  // Remove extra whitespace
+  name = name.trim().replace(/\s+/g, ' ');
+  
+  // Common name mappings for known players (expand as needed)
+  const nameMappings: Record<string, string> = {
+    'C. Alcaraz': 'Carlos Alcaraz',
+    'N. Djokovic': 'Novak Djokovic',
+    'J. Sinner': 'Jannik Sinner',
+    'A. Zverev': 'Alexander Zverev',
+    'T. Fritz': 'Taylor Fritz',
+    'D. Medvedev': 'Daniil Medvedev',
+    'R. Nadal': 'Rafael Nadal',
+    'A. Rublev': 'Andrey Rublev',
+    'C. Ruud': 'Casper Ruud',
+    'H. Hurkacz': 'Hubert Hurkacz',
+  };
+  
+  // Check if name matches a mapping
+  if (nameMappings[name]) {
+    return nameMappings[name];
+  }
+  
+  // If name starts with single letter + dot + space, try to find full name
+  // This is a basic heuristic - you may want to use a more sophisticated approach
+  const singleLetterMatch = name.match(/^([A-Z])\.\s+(.+)$/);
+  if (singleLetterMatch) {
+    const [, initial, lastName] = singleLetterMatch;
+    // Try to find existing player with same last name and country
+    // For now, return as-is and let the matching logic handle it
+    return name;
+  }
+  
+  return name;
+}
+
+/**
+ * Create a search key for fuzzy matching
+ * Removes accents, converts to lowercase, removes special characters
+ */
+function createSearchKey(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchATPRankings(): Promise<PlayerData[]> {
+  try {
+    // Try ATP official API first
+    console.log('Fetching from ATP official API...');
+    const apiData = await fetchATPOfficialAPI();
+    if (apiData.length > 0) {
+      console.log(`✓ Successfully fetched ${apiData.length} players from ATP Official API`);
+      return apiData;
+    }
+    
+    // Fallback to web scraper only if API fails
+    console.log('ATP API returned no data, trying web scraper...');
+    return await fetchATPRankingsFromWeb();
+    
+  } catch (error) {
+    console.error('Error fetching from ATP API:', error);
+    console.log('Falling back to web scraper...');
+    return await fetchATPRankingsFromWeb();
+  }
+}
+
+async function fetchATPOfficialAPI(): Promise<PlayerData[]> {
+  try {
+    const response = await fetch('https://www.atptour.com/-/api/rankings/rankingsData', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; FantasyTennis/1.0)',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data.rankings && Array.isArray(data.rankings) && data.rankings.length > 0) {
+        console.log(`ATP API returned ${data.rankings.length} players`);
+        
+        // Map and normalize the data
+        const players: PlayerData[] = data.rankings.map((player: any) => {
+          // Normalize name
+          const normalizedName = normalizePlayerName(player.playerName || player.name || '');
+          
+          // Ensure country code is uppercase and valid
+          let countryCode = (player.countryCode || player.country || 'UNK').toUpperCase().trim();
+          if (countryCode.length !== 3) {
+            // If not 3 characters, try to extract from other fields
+            countryCode = 'UNK';
+          }
+          
+          return {
+            ranking: parseInt(player.rank || player.ranking || '0', 10),
+            name: normalizedName,
+            country: countryCode,
+            points: parseInt(player.points || '0', 10),
+          };
+        }).filter((p: PlayerData) => p.ranking > 0 && p.name.length > 0);
+        
+        return players;
+      }
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error fetching from ATP Official API:', error);
+    return [];
+  }
+}
+
+async function scrapeRankingsPage(startRank: number = 1, endRank: number = 100): Promise<PlayerData[]> {
+  const url = `https://www.atptour.com/en/rankings/singles?rankRange=${startRank}-${endRank}`;
+  
+  console.log(`Scraping rankings ${startRank}-${endRank}...`);
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.error('Rate limited. Please wait before trying again.');
+        return [];
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const html = await response.text();
+    const $ = load(html);
+    const rankings: PlayerData[] = [];
+
+    const rows = $('.mega-table tbody tr, .rankings-table tbody tr, table.rankings tbody tr').toArray();
+
+    if (rows.length === 0) {
+      console.warn(`No rows found for range ${startRank}-${endRank}. Page structure may have changed.`);
+      return [];
+    }
+
+    for (const row of rows) {
+      try {
+        const cells = $(row).find('td').toArray();
+        
+        if (cells.length < 4) continue;
+
+        // Extract rank
+        const rankText = $(cells[0]).text().trim();
+        const rank = parseInt(rankText.replace(/[^\d]/g, ''), 10);
+        if (!rank || rank < 1) continue;
+
+        // Extract player name
+        const nameLink = $(cells[1] || cells[2]).find('a').first();
+        let name = nameLink.text().trim() || $(cells[1] || cells[2]).text().trim();
+        if (!name) continue;
+        
+        // Normalize name
+        name = normalizePlayerName(name);
+
+        // Extract country - try multiple methods
+        let country = 'UNK';
+        
+        // Method 1: Look for country code in data attributes
+        const countryElement = $(cells[1] || cells[2]).find('[data-country], .player-flag-code, .country-code').first();
+        if (countryElement.length > 0) {
+          country = countryElement.attr('data-country') || 
+                   countryElement.text().trim() || 
+                   countryElement.attr('title')?.substring(0, 3).toUpperCase() || 
+                   'UNK';
+        }
+        
+        // Method 2: Look for flag image alt text or title
+        if (country === 'UNK') {
+          const flagImg = $(cells[1] || cells[2]).find('img[alt*="flag"], img[title*="flag"]').first();
+          if (flagImg.length > 0) {
+            const altText = flagImg.attr('alt') || flagImg.attr('title') || '';
+            const countryMatch = altText.match(/([A-Z]{3})/);
+            if (countryMatch) {
+              country = countryMatch[1];
+            }
+          }
+        }
+        
+        // Method 3: Extract from class names (some sites use country codes in classes)
+        if (country === 'UNK') {
+          const cellClasses = $(cells[1] || cells[2]).attr('class') || '';
+          const classMatch = cellClasses.match(/\b([A-Z]{3})\b/);
+          if (classMatch) {
+            country = classMatch[1];
+          }
+        }
+        
+        // Ensure country is uppercase and 3 characters
+        country = country.toUpperCase().trim();
+        if (country.length !== 3) {
+          country = 'UNK';
+        }
+
+        // Extract points
+        const pointsText = $(cells[3] || cells[4]).text().trim().replace(/,/g, '');
+        const points = parseInt(pointsText, 10) || 0;
+
+        rankings.push({
+          ranking: rank,
+          name,
+          country,
+          points,
+        });
+      } catch (error) {
+        console.warn(`Error parsing row: ${error}`);
+        continue;
+      }
+    }
+
+    console.log(`  ✓ Found ${rankings.length} players in range ${startRank}-${endRank}`);
+    return rankings;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error(`Timeout scraping ${url}`);
+    } else {
+      console.error(`Error scraping ${url}:`, error.message);
+    }
+    return [];
+  }
+}
+
+async function scrapeAllRankings(maxRank: number = 500): Promise<PlayerData[]> {
+  const allRankings: PlayerData[] = [];
+  const ranges: Array<[number, number]> = [];
+  
+  for (let start = 1; start <= maxRank; start += 100) {
+    const end = Math.min(start + 99, maxRank);
+    ranges.push([start, end]);
+  }
+
+  for (const [start, end] of ranges) {
+    const rankings = await scrapeRankingsPage(start, end);
+    allRankings.push(...rankings);
+    
+    const currentIndex = ranges.findIndex(([s, e]) => s === start && e === end);
+    if (currentIndex < ranges.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+
+  return allRankings.sort((a, b) => a.ranking - b.ranking);
+}
+
+async function fetchATPRankingsFromWeb(): Promise<PlayerData[]> {
+  try {
+    console.log('Scraping ATP rankings from website using Cheerio...');
+    
+    const players = await scrapeAllRankings(500);
+    
+    if (players.length === 0) {
+      console.warn('No rankings scraped. The website structure may have changed.');
+      console.log('Using fallback static data...');
+      return fallbackPlayerData;
+    }
+
+    console.log(`Successfully scraped ${players.length} players from ATP website`);
+    return players;
+
+  } catch (error) {
+    console.error('Error scraping ATP website:', error);
+    console.log('Using fallback static data...');
+    return fallbackPlayerData;
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const adminEmails = ['rui@fk.com', 'admin@fk.com'];
+    if (!adminEmails.includes(user.email || '')) {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    console.log(`Starting ATP rankings update by admin: ${user.email}...`);
+    const players = await fetchATPRankings();
+    console.log(`Fetched ${players.length} players from ATP sources`);
+
+    // Track processed players by normalized name search key
+    const processedPlayerKeys = new Set<string>();
+    const playerKeyMap = new Map<string, PlayerData>(); // Map search key to player data
+    
+    // First pass: normalize all names and create search keys
+    for (const player of players) {
+      const normalizedName = normalizePlayerName(player.name);
+      const searchKey = createSearchKey(normalizedName);
+      processedPlayerKeys.add(searchKey);
+      playerKeyMap.set(searchKey, { ...player, name: normalizedName });
+    }
+
+    // Process each player
+    for (const player of players) {
+      const normalizedName = normalizePlayerName(player.name);
+      const searchKey = createSearchKey(normalizedName);
+      const price = calculatePrice(player.ranking);
+      
+      // Find existing player by normalized name (fuzzy match)
+      let existingPlayer = null;
+      
+      // Try exact match first
+      const { data: exactMatch } = await supabaseAdmin
+        .from("players")
+        .select("id, name, country, ranking")
+        .eq("name", normalizedName)
+        .maybeSingle();
+      
+      if (exactMatch) {
+        existingPlayer = exactMatch;
+      } else {
+        // Try fuzzy match using search key
+        // Get all players and check their search keys
+        const { data: allPlayers } = await supabaseAdmin
+          .from("players")
+          .select("id, name, country, ranking");
+        
+        if (allPlayers) {
+          for (const p of allPlayers) {
+            const pSearchKey = createSearchKey(p.name);
+            // Check if search keys are similar (exact match or one contains the other)
+            if (pSearchKey === searchKey || 
+                pSearchKey.includes(searchKey) || 
+                searchKey.includes(pSearchKey)) {
+              // Additional check: same last name (simple heuristic)
+              const pLastName = p.name.split(' ').pop()?.toLowerCase() || '';
+              const playerLastName = normalizedName.split(' ').pop()?.toLowerCase() || '';
+              if (pLastName === playerLastName && pLastName.length > 2) {
+                existingPlayer = p;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      if (existingPlayer) {
+        // Update existing player
+        const updateData: any = {
+          name: normalizedName, // Update to normalized name
+          country: player.country,
+          live_ranking: player.ranking,
+          ranking: player.ranking,
+          points: player.points,
+          price: price,
+          updated_at: new Date().toISOString(),
+        };
+        
+        const { error } = await supabaseAdmin
+          .from("players")
+          .update(updateData)
+          .eq("id", existingPlayer.id);
+        
+        if (error) {
+          console.error(`Error updating player ${normalizedName}:`, error);
+        } else {
+          console.log(`Updated player ${normalizedName} (ranking: ${player.ranking}, country: ${player.country})`);
+        }
+      } else {
+        // Insert new player
+        const insertData: any = {
+          name: normalizedName,
+          country: player.country,
+          live_ranking: player.ranking,
+          ranking: player.ranking,
+          points: player.points,
+          price: price,
+          updated_at: new Date().toISOString(),
+        };
+        
+        const { error } = await supabaseAdmin
+          .from("players")
+          .insert(insertData);
+        
+        if (error) {
+          console.error(`Error inserting player ${normalizedName}:`, error);
+        } else {
+          console.log(`Inserted new player ${normalizedName} (ranking: ${player.ranking}, country: ${player.country})`);
+        }
+      }
+    }
+
+    // Set ranking to 500+ for players not in the new rankings
+    const { data: allPlayers, error: fetchError } = await supabaseAdmin
+      .from("players")
+      .select("id, name, ranking");
+    
+    if (fetchError) {
+      console.error("Error fetching existing players:", fetchError);
+    } else if (allPlayers) {
+      const defaultRanking = 500;
+      const defaultPrice = calculatePrice(defaultRanking);
+      
+      for (const existingPlayer of allPlayers) {
+        const searchKey = createSearchKey(existingPlayer.name);
+        
+        if (!processedPlayerKeys.has(searchKey)) {
+          // Check if any processed key is similar
+          let foundSimilar = false;
+          for (const processedKey of processedPlayerKeys) {
+            if (searchKey === processedKey || 
+                searchKey.includes(processedKey) || 
+                processedKey.includes(searchKey)) {
+              foundSimilar = true;
+              break;
+            }
+          }
+          
+          if (!foundSimilar && existingPlayer.ranking && existingPlayer.ranking < defaultRanking) {
+            const { error } = await supabaseAdmin
+              .from("players")
+              .update({
+                ranking: defaultRanking,
+                live_ranking: defaultRanking,
+                price: defaultPrice,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existingPlayer.id);
+            
+            if (error) {
+              console.error(`Error updating unranked player ${existingPlayer.name}:`, error);
+            }
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        count: players.length,
+        message: `Successfully fetched and stored ${players.length} player rankings`,
+        sample: players.slice(0, 10).map(p => ({ ...p, price: calculatePrice(p.ranking) }))
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error fetching rankings:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});

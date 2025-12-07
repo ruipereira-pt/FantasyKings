@@ -16,6 +16,9 @@ export default function CompetitionManagement() {
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [associatedTournaments, setAssociatedTournaments] = useState<Record<string, Tournament[]>>({});
   const [fetchingTournamentsSchedule, setFetchingTournamentsSchedule] = useState(false);
+  const [syncYear, setSyncYear] = useState<number>(new Date().getFullYear());
+  const [isResuming, setIsResuming] = useState(false);
+  const [resumeFrom, setResumeFrom] = useState<string | null>(null);
 
   // Use API hooks
   const {
@@ -47,6 +50,11 @@ export default function CompetitionManagement() {
   }, [competitions, getCompetitionTournaments]);
 
   async function fetchTournamentsSchedule() {
+    if (!syncYear || syncYear < 2020 || syncYear > 2030) {
+      alert('Please enter a valid year (2020-2030)');
+      return;
+    }
+
     setFetchingTournamentsSchedule(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -56,23 +64,56 @@ export default function CompetitionManagement() {
         return;
       }
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tournaments-schedule`, {
+      const requestBody: any = { 
+        year: syncYear,
+        maxCompetitions: 20, // Process 20 competitions per call to avoid timeout
+      };
+      
+      if (resumeFrom) {
+        requestBody.resumeFrom = resumeFrom;
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/sync-tournaments`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
         const result = await response.json();
-        alert(`Successfully fetched tournaments schedule!\nProcessed: ${result.processed}\nTournaments created: ${result.tournaments_created}\nPlayers updated: ${result.players_updated}`);
+        
+        let message = `Synced tournaments for ${syncYear}!\n`;
+        message += `Synced: ${result.synced}\n`;
+        message += `Inserted: ${result.inserted}\n`;
+        message += `Updated: ${result.updated}\n`;
+        message += `Skipped: ${result.skipped || 0}\n`;
+        message += `Filtered: ${result.filtered || 0}\n`;
+        
+        if (result.hasMore) {
+          message += `\n⚠️ More competitions remaining: ${result.remaining}\n`;
+          message += `Click "Resume Sync" to continue from where we left off.`;
+          setResumeFrom(result.resumeFrom);
+          setIsResuming(true);
+        } else {
+          setResumeFrom(null);
+          setIsResuming(false);
+        }
+        
+        if (result.errors && result.errors.length > 0) {
+          message += `\n\nErrors: ${result.errors.length}`;
+        }
+        
+        alert(message);
       } else {
         const error = await response.json();
-        alert(`Failed to fetch tournaments schedule: ${error.error || 'Unknown error'}`);
+        alert(`Failed to sync tournaments: ${error.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error fetching tournaments schedule:', error);
-      alert('Failed to fetch tournaments schedule. Please try again.');
+      console.error('Error syncing tournaments:', error);
+      alert('Failed to sync tournaments. Please try again.');
     } finally {
       setFetchingTournamentsSchedule(false);
     }
@@ -96,17 +137,46 @@ export default function CompetitionManagement() {
           <h3 className="text-lg sm:text-xl font-bold text-white">Fetch Tournaments Schedule from SportsRadar</h3>
         </div>
         <p className="text-sm sm:text-base text-slate-400 mb-3 sm:mb-4">
-          Fetch competitions, seasons (2025/2026), and season info from SportsRadar API. 
-          This will create/update tournaments and update player schedules from qualification and main draw stages.
+          Sync tournaments from SportsRadar API for a specific year. 
+          This will fetch all competitions, filter seasons by year, and sync tournament details (idempotent - updates existing, inserts new).
         </p>
-        <button
-          onClick={fetchTournamentsSchedule}
-          disabled={fetchingTournamentsSchedule}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 sm:py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 text-sm sm:text-base"
-        >
-          <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${fetchingTournamentsSchedule ? 'animate-spin' : ''}`} />
-          <span>{fetchingTournamentsSchedule ? 'Fetching...' : 'Fetch Tournaments Schedule'}</span>
-        </button>
+        <div className="space-y-3 sm:space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Year to Sync
+            </label>
+            <input
+              type="number"
+              min="2020"
+              max="2030"
+              value={syncYear}
+              onChange={(e) => setSyncYear(parseInt(e.target.value) || new Date().getFullYear())}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="Enter year (e.g., 2025)"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={fetchTournamentsSchedule}
+              disabled={fetchingTournamentsSchedule}
+              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 sm:py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 text-sm sm:text-base"
+            >
+              <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${fetchingTournamentsSchedule ? 'animate-spin' : ''}`} />
+              <span>{fetchingTournamentsSchedule ? 'Syncing...' : isResuming ? 'Resume Sync' : `Sync Tournaments for ${syncYear}`}</span>
+            </button>
+            {isResuming && (
+              <button
+                onClick={() => {
+                  setResumeFrom(null);
+                  setIsResuming(false);
+                }}
+                className="px-4 py-2.5 sm:py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors text-sm sm:text-base"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Competition Setup */}

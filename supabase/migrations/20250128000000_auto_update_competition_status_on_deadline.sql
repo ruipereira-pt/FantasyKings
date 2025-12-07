@@ -36,3 +36,12 @@ $$;
 COMMENT ON FUNCTION update_competition_status_on_deadline() IS 
   'Updates competition status to active when join_deadline has passed';
 
+
+
+
+
+
+
+
+
+

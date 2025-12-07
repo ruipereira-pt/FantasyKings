@@ -1,3 +1,18 @@
+/**
+ * Fetches player schedules for a specific tournament
+ * 
+ * Called by:
+ *   - api.ts
+ *   - TeamBuilder.tsx
+ * 
+ * Method: POST
+ * Authentication: Required
+ * 
+ * Environment Variables Required:
+ *   - SPORTRADAR_API_KEY (for SportsRadar API calls)
+ *   - SUPABASE_URL
+ *   - SUPABASE_SERVICE_ROLE_KEY
+ */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -95,7 +110,7 @@ Deno.serve(async (req: Request) => {
       throw playersError;
     }
 
-    const results = [];
+    const results: Array<{ player: string; schedules: Array<{ tournament: string; status: string }> }> = [];
     let successCount = 0;
     let failCount = 0;
 

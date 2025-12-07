@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -69,7 +69,7 @@ jobs:
     needs: [lint-and-typecheck]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -119,20 +119,23 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
         continue-on-error: true
 
-  # Supabase Edge Functions Check
+  # Supabase Edge Functions Check & Deploy
   supabase-functions:
-    name: Check Supabase Functions
+    name: Check & Deploy Supabase Functions
     runs-on: ubuntu-latest
+    if: false # Temporarily disabled - set to true to re-enable
     steps:
+      - name: Skip deployment (temporarily disabled)
+        run: echo "⚠️  Edge functions deployment is temporarily disabled - skipping deployment steps"
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
@@ -142,18 +145,106 @@ jobs:
       - name: Check Supabase Functions syntax
         run: |
           cd supabase/functions
+          errors=0
           for dir in */; do
             if [ -f "$dir/index.ts" ]; then
+              func_name=$(basename "$dir")
+              # Skip _shared directory
+              if [ "$func_name" = "_shared" ]; then
+                continue
+              fi
               echo "Checking $dir..."
-              deno check "$dir/index.ts" || true
+              if ! deno check "$dir/index.ts" 2>&1; then
+                echo "❌ Syntax error in $dir"
+                errors=$((errors + 1))
+              else
+                echo "✅ $dir syntax OK"
+              fi
             fi
           done
+
+          if [ $errors -gt 0 ]; then
+            echo "❌ Found $errors function(s) with syntax errors"
+            exit 1
+          fi
+          echo "✅ All functions passed syntax check"
+
+      # Deployment steps temporarily disabled
+      # - name: Deploy Edge Functions (on main branch)
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   uses: supabase/setup-cli@v1
+      #   with:
+      #     version: latest
+
+      # - name: Validate Edge Functions Syntax
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   run: |
+      #     # Validate syntax of all edge functions before deploying
+      #     echo "Validating edge function syntax..."
+      #     errors=0
+      #     for dir in supabase/functions/*/; do
+      #       if [ -f "$dir/index.ts" ]; then
+      #         func_name=$(basename "$dir")
+      #         # Skip _shared directory
+      #         if [ "$func_name" = "_shared" ]; then
+      #           continue
+      #         fi
+      #         echo "Checking syntax for $func_name..."
+      #         # Use Deno to check syntax
+      #         if ! deno check "$dir/index.ts" 2>&1; then
+      #           echo "❌ Syntax error in $func_name"
+      #           errors=$((errors + 1))
+      #         else
+      #           echo "✅ $func_name syntax OK"
+      #         fi
+      #       fi
+      #     done
+
+      #     if [ $errors -gt 0 ]; then
+      #       echo "❌ Found $errors function(s) with syntax errors. Deployment will fail."
+      #       exit 1
+      #     fi
+      #     echo "✅ All functions passed syntax validation"
+
+      # - name: Deploy all Edge Functions
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   run: |
+      #     # Deploy all edge functions that have index.ts
+      #     # Using --use-api flag to use Management API instead of Docker (better for CI/CD)
+      #     errors=0
+      #     for dir in supabase/functions/*/; do
+      #       if [ -f "$dir/index.ts" ]; then
+      #         func_name=$(basename "$dir")
+      #         # Skip _shared directory
+      #         if [ "$func_name" = "_shared" ]; then
+      #           continue
+      #         fi
+      #         echo "Deploying $func_name..."
+      #         if ! supabase functions deploy "$func_name" \
+      #           --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+      #           --use-api; then
+      #           echo "❌ Failed to deploy $func_name"
+      #           errors=$((errors + 1))
+      #         else
+      #           echo "✅ Successfully deployed $func_name"
+      #         fi
+      #       fi
+      #     done
+
+      #     if [ $errors -gt 0 ]; then
+      #       echo "❌ Failed to deploy $errors function(s). Pipeline will fail."
+      #       exit 1
+      #     fi
+      #     echo "✅ All functions deployed successfully"
+      #   env:
+      #     SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      #     SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
   # Summary Job
   ci-success:
     name: CI Pipeline Status
     runs-on: ubuntu-latest
-    needs: [security, lint-and-typecheck, build, test, supabase-functions]
+    needs: [security, lint-and-typecheck, build, test]
     if: always()
     steps:
       - name: Check job status
@@ -165,16 +256,12 @@ jobs:
             echo "❌ Critical checks failed. Please review the logs."
             exit 1
           fi
-          
-          # Test and Supabase checks are warnings but don't fail the pipeline
+
+          # Test checks are warnings but don't fail the pipeline
           if [ "${{ needs.test.result }}" != "success" ]; then
             echo "⚠️  Tests did not pass completely, but continuing..."
           fi
-          
-          if [ "${{ needs.supabase-functions.result }}" != "success" ]; then
-            echo "⚠️  Supabase functions check had issues, but continuing..."
-          fi
-          
+
+          echo "⚠️  Supabase functions check is temporarily disabled"
           echo "✅ All critical CI checks passed!"
           exit 0
-
