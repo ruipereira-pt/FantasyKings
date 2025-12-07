@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import { Trophy, Users, Calendar, Lock, Coins, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import TeamBuilder from './TeamBuilder';
@@ -15,7 +15,7 @@ interface CompetitionType {
   type: 'season' | 'road_to_major' | 'per_competition' | 'per_gameweek';
   maxPlayers: number;
   maxChanges: number;
-  icon: JSX.Element;
+  icon: ReactElement;
   color: string;
 }
 
